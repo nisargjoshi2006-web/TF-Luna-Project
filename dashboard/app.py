@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import os
 import streamlit.components.v1 as components
-import plotly.graph_objects as go
 from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(page_title="TF-Luna LiDAR Dashboard & 3D Viewer", layout="wide")
@@ -19,7 +18,6 @@ with tab1:
     st_autorefresh(interval=1000, key="refresh_tab1")
     st.title("🎯 TF-Luna LiDAR Real-Time Monitor")
 
-    # Load Calibration Info
     slope_m = 1.0
     intercept_c = 0.0
     r_squared = "N/A"
@@ -92,31 +90,33 @@ with tab2:
             c = calib_data.get("intercept_c", 0.0)
             r2 = calib_data.get("r_squared", 1.0)
 
-            # Interactive Plotly Calibration Curve
-            fig = go.Figure()
-            # Measured data points
-            fig.add_trace(go.Scatter(
-                x=raw_vals, y=true_vals, mode='markers',
-                name='Empirical Benchmark Points',
-                marker=dict(size=12, color='#ff6b35', symbol='diamond')
-            ))
-            # Fitted line
-            line_x = [min(raw_vals) * 0.8, max(raw_vals) * 1.2]
-            line_y = [m * lx + c for lx in line_x]
-            fig.add_trace(go.Scatter(
-                x=line_x, y=line_y, mode='lines',
-                name=f'Fitted Curve: y = {m:.4f}x + {c:+.2f}',
-                line=dict(color='#00e5ff', width=3, dash='dash')
-            ))
-
-            fig.update_layout(
-                title=f"Sensor Calibration Curve (R² = {r2})",
-                xaxis_title="Raw Measured Distance (cm)",
-                yaxis_title="True Ground-Truth Distance (cm)",
-                template="plotly_dark",
-                height=450
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            # Try plotting with Plotly if installed, else fallback to standard chart
+            try:
+                import plotly.graph_objects as go
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=raw_vals, y=true_vals, mode='markers',
+                    name='Empirical Benchmark Points',
+                    marker=dict(size=12, color='#ff6b35', symbol='diamond')
+                ))
+                line_x = [min(raw_vals) * 0.8, max(raw_vals) * 1.2]
+                line_y = [m * lx + c for lx in line_x]
+                fig.add_trace(go.Scatter(
+                    x=line_x, y=line_y, mode='lines',
+                    name=f'Fitted Curve: y = {m:.4f}x + {c:+.2f}',
+                    line=dict(color='#00e5ff', width=3, dash='dash')
+                ))
+                fig.update_layout(
+                    title=f"Sensor Calibration Curve (R² = {r2})",
+                    xaxis_title="Raw Measured Distance (cm)",
+                    yaxis_title="True Ground-Truth Distance (cm)",
+                    template="plotly_dark",
+                    height=450
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            except ImportError:
+                curve_df = pd.DataFrame({"Raw Measured": raw_vals, "True Target": true_vals})
+                st.scatter_chart(curve_df, x="Raw Measured", y="True Target")
 
             col1, col2 = st.columns(2)
             with col1:
