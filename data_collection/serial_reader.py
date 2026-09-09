@@ -9,7 +9,7 @@ from collections import deque
 BAUDRATE = 115200
 CALIBRATION_FILE = 'data/calibration.json'
 DATA_FILE = 'data/distance_data.csv'
-FILTER_WINDOW_SIZE = 10  # Moving average window to eliminate jitter
+FILTER_WINDOW_SIZE = 8
 
 def get_arduino_port():
     ports = serial.tools.list_ports.comports()
@@ -21,14 +21,18 @@ def get_arduino_port():
             return p.device
     return 'COM9'
 
-# Load Calibration Offset
-offset = 0.0
+# Load Calibration Model (Linear Regression)
+slope_m = 1.0
+intercept_c = 0.0
+
 if os.path.exists(CALIBRATION_FILE):
     try:
         with open(CALIBRATION_FILE, 'r') as f:
             calib = json.load(f)
-            offset = calib.get("offset_error_cm", 0.0)
-            print(f"[CALIBRATION ACTIVE] Base Offset Applied: {offset:+.2f} cm")
+            slope_m = calib.get("slope_m", 1.0)
+            intercept_c = calib.get("intercept_c", calib.get("offset_error_cm", 0.0))
+            r2 = calib.get("r_squared", "N/A")
+            print(f"[REGRESSION MODEL ACTIVE] Calibrated = ({slope_m:.4f} * Raw) + ({intercept_c:+.2f}) | R² = {r2}")
     except Exception:
         pass
 
@@ -49,9 +53,9 @@ with open(DATA_FILE, 'a', newline='') as file:
     writer = csv.writer(file)
 
     if not file_exists or os.path.getsize(DATA_FILE) == 0:
-        writer.writerow(["Raw_Distance", "Calibrated_Filtered_Distance"])
+        writer.writerow(["Raw_Distance", "Calibrated_Distance"])
 
-    print("Reading Precision Filtered & Calibrated Data... (Press Ctrl+C to stop)")
+    print("Reading Multi-Point Calibrated & Filtered Data... (Press Ctrl+C to stop)")
 
     filter_queue = deque(maxlen=FILTER_WINDOW_SIZE)
 
@@ -70,14 +74,14 @@ with open(DATA_FILE, 'a', newline='') as file:
                 continue
 
             if raw_dist > 0:
-                # Apply base calibration
-                calibrated = raw_dist + offset
+                # Apply Linear Regression Model: y = m * x + c
+                calibrated = (slope_m * raw_dist) + intercept_c
                 filter_queue.append(calibrated)
 
-                # High-precision Median Filter (eliminates 0.01cm - 0.2cm optical jitter)
+                # Digital Median Filter
                 filtered_dist = round(statistics.median(filter_queue), 2)
 
-                print(f"Raw: {raw_dist:6.2f} cm  ==>  Calibrated & Filtered: {filtered_dist:6.2f} cm")
+                print(f"Raw: {raw_dist:6.2f} cm  ==>  Accurate Calibrated: {filtered_dist:6.2f} cm")
                 writer.writerow([raw_dist, filtered_dist])
                 file.flush()
 
