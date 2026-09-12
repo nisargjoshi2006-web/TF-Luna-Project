@@ -1,7 +1,17 @@
 {
-    "true_distance_cm": 30.6,
-    "measured_avg_cm": 26.68,
-    "offset_error_cm": 3.92,
-    "scale_factor": 1.0,
-    "calibrated_at": "2026-09-09 23:44:43"
+    "model_type": "Single_Point_Offset",
+    "true_distance_cm": 15.0,
+    "measured_avg_cm": 12.0,
+    "offset_error_cm": 3.0,
+    "slope_m": 1.0,
+    "intercept_c": 3.0,
+    "std_dev_cm": 0.0,
+    "calibration_points": [
+        {
+            "true_cm": 15.0,
+            "measured_cm": 12.0,
+            "std_cm": 0.0
+        }
+    ],
+    "calibrated_at": "2026-09-12 22:57:46"
 }
