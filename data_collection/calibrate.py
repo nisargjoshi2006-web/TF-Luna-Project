@@ -1,4 +1,4 @@
-﻿import serial
+import serial
 import serial.tools.list_ports
 import json
 import time
