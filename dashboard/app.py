@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 import json
 import os
@@ -8,11 +8,12 @@ from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(page_title="TF-Luna LiDAR SHM Inspection Suite", layout="wide")
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Live Telemetry & Defect Detector", 
     "📈 Linear Profile & Cavity Mapping",
     "🔬 Calibration Curve & Accuracy Report", 
-    "🌐 3D Point Cloud & Mesh Suite"
+    "🌐 3D Point Cloud & Mesh Suite",
+    "🏠 3D Room Surface Scanner"
 ])
 
 # ----------------- TAB 1: LIVE TELEMETRY & STRUCTURAL DEFECT DETECTOR -----------------
@@ -197,3 +198,121 @@ with tab4:
         components.html(html_content, height=720, scrolling=False)
     else:
         st.error("Viewer template not found.")
+
+# ----------------- TAB 5: 3D ROOM SURFACE SCANNER -----------------
+with tab5:
+    st.title("🏠 3D Room Surface Scanner")
+    st.markdown("""
+    **How to generate a 3D room model:**
+    1. Run `python data_collection/room_scanner.py` in your terminal
+    2. Enter room dimensions (width × depth in meters)
+    3. Slide the TF-Luna sensor along all 4 walls
+    4. The tool generates `data/room_scan.ply` automatically
+    5. Refresh this page to see your 3D room model below!
+    """)
+
+    ROOM_PLY = "data/room_scan.ply"
+    if os.path.exists(ROOM_PLY):
+        # Parse PLY file
+        try:
+            with open(ROOM_PLY, 'r') as f:
+                lines = f.readlines()
+
+            # Skip header
+            header_end = 0
+            vertex_count = 0
+            for i, line in enumerate(lines):
+                if line.strip() == "end_header":
+                    header_end = i + 1
+                    break
+                if line.strip().startswith("element vertex"):
+                    vertex_count = int(line.strip().split()[-1])
+
+            # Parse vertices
+            xs, ys, zs, rs, gs, bs = [], [], [], [], [], []
+            for line in lines[header_end:header_end + vertex_count]:
+                parts = line.strip().split()
+                if len(parts) >= 6:
+                    xs.append(float(parts[0]))
+                    ys.append(float(parts[1]))
+                    zs.append(float(parts[2]))
+                    rs.append(int(parts[3]))
+                    gs.append(int(parts[4]))
+                    bs.append(int(parts[5]))
+
+            if xs:
+                # Room stats
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total 3D Points", f"{len(xs):,}")
+                with col2:
+                    x_span = max(xs) - min(xs)
+                    st.metric("Room Width", f"{x_span:.1f} m")
+                with col3:
+                    z_span = max(zs) - min(zs)
+                    st.metric("Room Depth", f"{z_span:.1f} m")
+                with col4:
+                    y_span = max(ys) - min(ys)
+                    st.metric("Scan Height", f"{y_span:.1f} m")
+
+                # 3D Plotly scatter
+                colors = [f'rgb({r},{g},{b})' for r, g, b in zip(rs, gs, bs)]
+                fig_room = go.Figure(data=[go.Scatter3d(
+                    x=xs, y=zs, z=ys,  # Swap Y/Z for better viewing angle
+                    mode='markers',
+                    marker=dict(
+                        size=3,
+                        color=colors,
+                        opacity=0.85
+                    ),
+                    text=[f"X:{x:.2f}m Y:{y:.2f}m Z:{z:.2f}m" for x, y, z in zip(xs, ys, zs)],
+                    hovertemplate='%{text}<extra></extra>'
+                )])
+                fig_room.update_layout(
+                    title="🏗️ 3D Room Surface Model (Interactive — Drag to Rotate)",
+                    scene=dict(
+                        xaxis_title="Width (m)",
+                        yaxis_title="Depth (m)",
+                        zaxis_title="Height (m)",
+                        aspectmode='data',
+                        bgcolor='#0a0c10',
+                        xaxis=dict(gridcolor='#1e2230', color='#64748b'),
+                        yaxis=dict(gridcolor='#1e2230', color='#64748b'),
+                        zaxis=dict(gridcolor='#1e2230', color='#64748b'),
+                    ),
+                    template="plotly_dark",
+                    height=650,
+                    margin=dict(l=0, r=0, t=40, b=0)
+                )
+                st.plotly_chart(fig_room, use_container_width=True)
+
+                # Wall color legend
+                st.markdown("""
+                **Wall Color Legend:**
+                🔵 **Cyan** = North Wall | 🟠 **Orange** = East Wall | 🟣 **Purple** = South Wall | 🟢 **Green** = West Wall | 🔴 **Red highlights** = Structural Defects (>3cm deviation)
+                """)
+
+                # Download button
+                with open(ROOM_PLY, 'r') as f:
+                    ply_content = f.read()
+                st.download_button(
+                    label="📥 Download Room Scan PLY File",
+                    data=ply_content,
+                    file_name="room_scan.ply",
+                    mime="application/octet-stream"
+                )
+        except Exception as e:
+            st.error(f"Error loading room scan: {e}")
+    else:
+        st.info("No room scan found yet. Run `python data_collection/room_scanner.py` to generate one!")
+        st.markdown("""
+        ### Quick Start
+        ```bash
+        # Terminal 1: Make sure Arduino is connected
+        python data_collection/room_scanner.py
+        
+        # Follow the prompts to scan all 4 walls
+        # Then refresh this page to see your 3D room!
+        ```
+        """)
+
