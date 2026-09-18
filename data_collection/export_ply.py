@@ -1,4 +1,4 @@
-﻿import serial
+import serial
 import serial.tools.list_ports
 import json
 import time
@@ -12,12 +12,12 @@ OUTPUT_PLY = 'data/live_scan.ply'
 def get_arduino_port():
     ports = serial.tools.list_ports.comports()
     for p in ports:
-        if "Arduino" in p.description or "CH340" in p.description or "USB Serial" in p.description:
+        if any(keyword in p.description for keyword in ["CP210", "Silicon", "ESP32", "Arduino", "CH340", "USB Serial", "USB-to-UART"]):
             return p.device
     for p in ports:
         if "Bluetooth" not in p.description:
             return p.device
-    return 'COM9'
+    return 'COM10'
 
 # Load offset
 offset = 3.0
