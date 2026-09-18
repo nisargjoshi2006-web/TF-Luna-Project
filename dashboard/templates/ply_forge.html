@@ -57,6 +57,10 @@
       <div class="section-title">3D Model Info</div>
       <div class="info-row"><span class="label">Points Count:</span><span class="value" id="info-pts">0</span></div>
       <div class="info-row"><span class="label">Model Status:</span><span class="value" id="info-status">Waiting for load</span></div>
+      <div class="info-row"><span class="label">Width (X):</span><span class="value" id="info-w">3.20 m</span></div>
+      <div class="info-row"><span class="label">Depth (Z):</span><span class="value" id="info-d">2.80 m</span></div>
+      <div class="info-row"><span class="label">Height (Y):</span><span class="value" id="info-h">2.60 m</span></div>
+      <div class="info-row"><span class="label">Floor Area:</span><span class="value" id="info-area">8.96 m²</span></div>
     </div>
     <hr style="border-color: var(--border);">
     <div>
@@ -157,10 +161,22 @@ function displayGeometry(geometry, name) {
   pointCloud = new THREE.Points(geometry, material);
   scene.add(pointCloud);
 
+  geometry.computeBoundingBox();
+  const bbox = geometry.boundingBox;
+  const w = (bbox.max.x - bbox.min.x).toFixed(2);
+  const h = (bbox.max.y - bbox.min.y).toFixed(2);
+  const d = (bbox.max.z - bbox.min.z).toFixed(2);
+  const area = (parseFloat(w) * parseFloat(d)).toFixed(2);
+
+  if (document.getElementById('info-w')) document.getElementById('info-w').textContent = w + ' m';
+  if (document.getElementById('info-d')) document.getElementById('info-d').textContent = d + ' m';
+  if (document.getElementById('info-h')) document.getElementById('info-h').textContent = h + ' m';
+  if (document.getElementById('info-area')) document.getElementById('info-area').textContent = area + ' m²';
+
   geometry.computeBoundingSphere();
   const sphere = geometry.boundingSphere;
   controls.target.copy(sphere.center);
-  camera.position.set(sphere.center.x, sphere.center.y + sphere.radius, sphere.center.z + sphere.radius * 2.5);
+  camera.position.set(sphere.center.x, sphere.center.y + sphere.radius, sphere.center.z + sphere.radius * 2.2);
   controls.update();
 }
 
@@ -219,7 +235,7 @@ function resetCamera() {
     pointCloud.geometry.computeBoundingSphere();
     const sphere = pointCloud.geometry.boundingSphere;
     controls.target.copy(sphere.center);
-    camera.position.set(sphere.center.x, sphere.center.y + sphere.radius, sphere.center.z + sphere.radius * 2.5);
+    camera.position.set(sphere.center.x, sphere.center.y + sphere.radius * 1.2, sphere.center.z + sphere.radius * 2.2);
     controls.update();
   } else {
     camera.position.set(0, 4, 10);
@@ -228,7 +244,52 @@ function resetCamera() {
   }
 }
 
+function setupDragAndDrop() {
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    container.style.outline = '2px dashed #00e5ff';
+  });
+  container.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    container.style.outline = 'none';
+  });
+  container.addEventListener('drop', (e) => {
+    e.preventDefault();
+    container.style.outline = 'none';
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        try {
+          const loader = new THREE.PLYLoader();
+          const geometry = loader.parse(evt.target.result);
+          displayGeometry(geometry, file.name);
+        } catch (err) {
+          alert("Error parsing PLY file: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  });
+}
+
 initThree();
+setupDragAndDrop();
+
+// Check for dynamically injected scan data from dashboard/app.py
+const initialPlyData = window.__INITIAL_PLY_DATA__ || null;
+if (initialPlyData && initialPlyData.length > 50) {
+  try {
+    const loader = new THREE.PLYLoader();
+    const geometry = loader.parse(initialPlyData);
+    displayGeometry(geometry, window.__INITIAL_PLY_NAME__ || 'room_scan.ply');
+  } catch (err) {
+    console.warn("Could not parse injected PLY, falling back to room preset:", err);
+    loadRoomPreset();
+  }
+} else {
+  loadRoomPreset();
+}
 </script>
 </body>
 </html>
