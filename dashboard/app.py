@@ -317,11 +317,26 @@ with tab2:
         if len(active_data) > 2:
             avg_depth = float(np.mean(active_data))
             devs = active_data - avg_depth
-            anomaly_mask = np.abs(devs) > anomaly_threshold
+            
+            # Three-defect classification masks
+            cavity_mask = devs >= anomaly_threshold
+            bulge_mask = devs <= -anomaly_threshold
+            
+            # Sharp spikes / cracks
+            crack_mask = np.zeros(len(active_data), dtype=bool)
+            for ci in range(1, len(active_data) - 1):
+                p_diff = abs(active_data[ci] - active_data[ci-1])
+                n_diff = abs(active_data[ci] - active_data[ci+1])
+                if p_diff >= 1.5 and n_diff >= 1.5 and np.sign(active_data[ci] - active_data[ci-1]) == np.sign(active_data[ci] - active_data[ci+1]):
+                    crack_mask[ci] = True
+            
+            anomaly_mask = cavity_mask | bulge_mask | crack_mask
             scan_length_m = (x_pos[-1] - x_pos[0]) / 100.0 if len(x_pos) > 1 else 0.0
             scanned_profile_area_m2 = round(scan_length_m * (avg_depth / 100.0), 2)
-            num_anomalies = int(np.sum(anomaly_mask))
-            defect_area_cm2 = round(float(np.sum(np.abs(devs[anomaly_mask])) * step_size_cm), 1) if num_anomalies > 0 else 0.0
+            num_cavities = int(np.sum(cavity_mask))
+            num_bulges = int(np.sum(bulge_mask))
+            num_cracks = int(np.sum(crack_mask))
+            num_total_anomalies = int(np.sum(anomaly_mask))
 
             m1, m2, m3, m4, m5, m6 = st.columns(6)
             with m1:
@@ -331,11 +346,11 @@ with tab2:
             with m3:
                 st.metric("Profile Surface Area", f"{scanned_profile_area_m2:.2f} m²")
             with m4:
-                st.metric("Baseline Depth", f"{avg_depth:.1f} cm")
+                st.metric("🔴 Cavities Found", f"{num_cavities}", delta="Depressions (+cm)")
             with m5:
-                st.metric("Max Variation", f"{np.max(np.abs(devs)):.1f} cm")
+                st.metric("🟠 Bulges Found", f"{num_bulges}", delta="Protrusions (-cm)")
             with m6:
-                st.metric("Defects Found", f"{num_anomalies}", delta=f"{defect_area_cm2:.1f} cm² cavity" if num_anomalies > 0 else "Uniform", delta_color="inverse" if num_anomalies > 0 else "normal")
+                st.metric("🟡 Cracks Found", f"{num_cracks}", delta="Fracture Spikes")
 
             fig_profile = go.Figure()
             fig_profile.add_trace(go.Scatter(
@@ -351,12 +366,34 @@ with tab2:
                 name=f'Baseline Surface ({avg_depth:.1f} cm)',
                 line=dict(color='#64748b', width=2, dash='dash')
             ))
-            if np.any(anomaly_mask):
+
+            # 1. Cavity / Spalling Markers (Red)
+            if np.any(cavity_mask):
                 fig_profile.add_trace(go.Scatter(
-                    x=x_pos[anomaly_mask], y=active_data[anomaly_mask], mode='markers',
-                    name='⚠️ Structural Defects / Cavities',
-                    marker=dict(size=10, color='#ef4444', symbol='diamond', line=dict(color='#ffffff', width=1)),
-                    text=[f"Pos: {x:.1f}cm | Depth: {y:.1f}cm | Dev: {y - avg_depth:+.1f}cm" for x, y in zip(x_pos[anomaly_mask], active_data[anomaly_mask])],
+                    x=x_pos[cavity_mask], y=active_data[cavity_mask], mode='markers',
+                    name='🔴 Surface Cavities / Spalling (+cm)',
+                    marker=dict(size=11, color='#ef4444', symbol='diamond', line=dict(color='#ffffff', width=1)),
+                    text=[f"Pos: {x:.1f}cm | Depth: {y:.1f}cm | Cavity: {y - avg_depth:+.1f}cm" for x, y in zip(x_pos[cavity_mask], active_data[cavity_mask])],
+                    hovertemplate='<b>%{text}</b><extra></extra>'
+                ))
+
+            # 2. Bulge / Delamination Markers (Orange)
+            if np.any(bulge_mask):
+                fig_profile.add_trace(go.Scatter(
+                    x=x_pos[bulge_mask], y=active_data[bulge_mask], mode='markers',
+                    name='🟠 Surface Bulges / Delamination (-cm)',
+                    marker=dict(size=11, color='#f97316', symbol='square', line=dict(color='#ffffff', width=1)),
+                    text=[f"Pos: {x:.1f}cm | Depth: {y:.1f}cm | Bulge: {abs(y - avg_depth):.1f}cm" for x, y in zip(x_pos[bulge_mask], active_data[bulge_mask])],
+                    hovertemplate='<b>%{text}</b><extra></extra>'
+                ))
+
+            # 3. Crack Markers (Yellow)
+            if np.any(crack_mask):
+                fig_profile.add_trace(go.Scatter(
+                    x=x_pos[crack_mask], y=active_data[crack_mask], mode='markers',
+                    name='🟡 Cracks / Structural Fissures',
+                    marker=dict(size=12, color='#eab308', symbol='x', line=dict(color='#ffffff', width=1.5)),
+                    text=[f"Pos: {x:.1f}cm | Depth: {y:.1f}cm | Crack Spike" for x, y in zip(x_pos[crack_mask], active_data[crack_mask])],
                     hovertemplate='<b>%{text}</b><extra></extra>'
                 ))
 
@@ -377,18 +414,32 @@ with tab2:
             st.plotly_chart(fig_profile, use_container_width=True)
 
             st.subheader("📋 Structural Anomaly Log & Classification")
-            if np.any(anomaly_mask):
+            if num_total_anomalies > 0:
                 anomaly_records = []
-                for x_val, d_val, dev_val in zip(x_pos[anomaly_mask], active_data[anomaly_mask], devs[anomaly_mask]):
+                for x_val, d_val, dev_val, is_cav, is_bulge, is_crk in zip(
+                    x_pos[anomaly_mask], active_data[anomaly_mask], devs[anomaly_mask],
+                    cavity_mask[anomaly_mask], bulge_mask[anomaly_mask], crack_mask[anomaly_mask]
+                ):
+                    if is_crk:
+                        atype = "🟡 Crack / Structural Fissure (Fracture)"
+                        recom = "Epoxy resin pressure injection"
+                    elif is_cav:
+                        atype = f"🔴 Surface Cavity / Spalling ({dev_val:+.1f} cm)"
+                        recom = "Polymer-modified mortar patching"
+                    else:
+                        atype = f"🟠 Surface Bulge / Delamination ({abs(dev_val):.1f} cm protrusion)"
+                        recom = "Plaster chipping & moisture barrier sealing"
+
                     anomaly_records.append({
                         "Scan Position (cm)": f"{x_val:.1f}",
                         "Measured Distance (cm)": f"{d_val:.2f}",
                         "Deviation from Baseline (cm)": f"{dev_val:+.2f}",
-                        "Structural Defect Type": "⚠️ Structural Cavity / Missing Material" if dev_val > 0 else "🧱 Surface Protrusion / Obstacle"
+                        "Defect Type": atype,
+                        "Recommended SHM Action": recom
                     })
                 st.dataframe(pd.DataFrame(anomaly_records), use_container_width=True)
             else:
-                st.success("✅ Uniform Surface: No structural depth cavities or spalling detected along this scanned section.")
+                st.success("✅ Uniform Surface: No structural depth cavities, bulges, or cracks detected along this scanned section.")
     else:
         st.info(f"No data available in `{active_filepath2}`. Upload a CSV file above.")
 
@@ -561,25 +612,102 @@ with tab5:
         if 'active_3d_path' in st.session_state and os.path.exists(st.session_state['active_3d_path']):
             active_3d_path = st.session_state['active_3d_path']
 
-    # Manual Measurement Input in CM
-    with st.expander("📝 Enter Manual Measurements in CM (Calculate Area & Generate 3D Model)", expanded=False):
-        st.markdown("Enter your manual physical measurements or LiDAR readings in **centimeters (cm)**:")
-        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-        with m_col1:
-            man_w_cm = st.number_input("Room Width (X) in cm:", min_value=50.0, max_value=2000.0, value=420.0, step=10.0, key="man_w_cm")
-        with m_col2:
-            man_d_cm = st.number_input("Room Depth (Z) in cm:", min_value=50.0, max_value=2000.0, value=360.0, step=10.0, key="man_d_cm")
-        with m_col3:
-            man_h_cm = st.number_input("Ceiling Height (Y) in cm:", min_value=50.0, max_value=1000.0, value=270.0, step=10.0, key="man_h_cm")
-        with m_col4:
-            include_man_def = st.checkbox("Include West Wall Defect", value=True, key="man_def")
+    # Manual Measurement Input in CM (Horizontal Sweep or Room Dimensions)
+    with st.expander("📝 Enter Manual Measurements in CM (Horizontal Sweep or Dimensions)", expanded=False):
+        st.markdown("Choose how you took your measurements with the TF-Luna in **centimeters (cm)**:")
+        man_entry_mode = st.radio(
+            "Input Mode:", 
+            ["↔️ Horizontal Wall Sweep (Move sensor left-to-right along wall)", "🏠 Complete 3D Room Dimensions (Width × Depth × Height)"], 
+            key="man_mode", horizontal=True
+        )
 
-        if st.button("⚡ Calculate Area & Generate 3D Model from CM Inputs", type="primary", key="btn_gen_man"):
-            from manual_entry import build_and_save_room
-            build_and_save_room(man_w_cm, man_d_cm, man_h_cm, defect_wall='west' if include_man_def else None)
-            st.session_state['active_3d_path'] = 'data/room_scan.ply'
-            st.success(f"✅ Generated 3D scan from manual {man_w_cm:.0f}cm × {man_d_cm:.0f}cm × {man_h_cm:.0f}cm measurements! Reloading...")
-            st.rerun()
+        if "Horizontal Wall Sweep" in man_entry_mode:
+            st.info("💡 **Horizontal Sweep Mode**: As you move the TF-Luna horizontally along a wall, enter your distance readings in cm. The system automatically detects **Cavities (+cm)**, **Bulges (-cm)**, and **Cracks**!")
+            h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
+            with h_col1:
+                sw_wall = st.selectbox("Select Scanned Wall:", ["North Wall (Span X)", "East Wall (Span Z)", "South Wall (Span X)", "West Wall (Span Z)"], key="sw_wall")
+            with h_col2:
+                sw_len_cm = st.number_input("Wall Length in cm:", min_value=100.0, max_value=2000.0, value=420.0, step=10.0, key="sw_len_cm")
+            with h_col3:
+                sw_ceil_cm = st.number_input("Ceiling Height in cm:", min_value=100.0, max_value=1000.0, value=270.0, step=10.0, key="sw_ceil_cm")
+
+            sw_readings_str = st.text_area(
+                "Enter Distance Readings in cm (comma-separated as you moved horizontally):",
+                value="100.0, 100.2, 99.8, 100.1, 104.2, 104.5, 104.1, 100.0, 99.9, 100.2, 96.1, 95.8, 96.0, 99.8, 100.1, 100.0, 101.8, 100.1, 99.9, 100.0",
+                help="Example: 100, 100, 104 (+4cm cavity), 100, 96 (-4cm bulge), 100",
+                key="sw_readings_str"
+            )
+
+            if st.button("⚡ Run Horizontal Sweep Analysis & 3D Reconstruction", type="primary", key="btn_run_sw"):
+                try:
+                    vals = [float(x.strip()) for x in sw_readings_str.split(',') if x.strip()]
+                    if len(vals) >= 2:
+                        from manual_entry import build_and_save_room
+                        target_wall = 'north' if 'North' in sw_wall else ('east' if 'East' in sw_wall else ('south' if 'South' in sw_wall else 'west'))
+                        w_cm = sw_len_cm if target_wall in ('north', 'south') else 360.0
+                        d_cm = sw_len_cm if target_wall in ('east', 'west') else 360.0
+                        
+                        # Check for cavities in vals
+                        base_d = float(np.median(vals))
+                        has_cavity = any((v - base_d) >= 2.0 for v in vals)
+
+                        build_and_save_room(w_cm, d_cm, sw_ceil_cm, defect_wall=target_wall if has_cavity else None)
+
+                        # Also save to data/distance_data.csv for Tab 1 & Tab 2
+                        step_c = sw_len_cm / max(1, len(vals) - 1)
+                        rows_sw = []
+                        for si, sv in enumerate(vals):
+                            sdev = sv - base_d
+                            sstat = "NOMINAL SOUND SURFACE"
+                            sflux = 1800
+                            if sdev >= 2.0:
+                                sstat = "SURFACE CAVITY / SPALLING"
+                            elif sdev <= -2.0:
+                                sstat = "SURFACE BULGE / DELAMINATION"
+                            rows_sw.append({
+                                "timestamp": round(si * 0.1, 2),
+                                "position_cm": round(si * step_c, 1),
+                                "distance_cm": round(sv, 2),
+                                "calibrated_distance_cm": round(sv + 3.0, 2),
+                                "deviation_cm": round(sdev, 2),
+                                "flux": sflux,
+                                "temperature_c": 28.5,
+                                "defect_status": sstat,
+                                "wall": target_wall
+                            })
+                        pd.DataFrame(rows_sw).to_csv('data/distance_data.csv', index=False)
+
+                        st.session_state['active_3d_path'] = 'data/room_scan.ply'
+                        st.success(f"✅ Processed {len(vals)} horizontal points on {sw_wall}! Detected defects mapped to Tab 1, 2, & 5.")
+                        st.rerun()
+                    else:
+                        st.error("Please enter at least 2 distance readings in cm.")
+                except Exception as e:
+                    st.error(f"Error processing readings: {e}")
+
+        else:
+            m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+            with m_col1:
+                man_w_cm = st.number_input("Room Width (X) in cm:", min_value=50.0, max_value=2000.0, value=420.0, step=10.0, key="man_w_cm")
+            with m_col2:
+                man_d_cm = st.number_input("Room Depth (Z) in cm:", min_value=50.0, max_value=2000.0, value=360.0, step=10.0, key="man_d_cm")
+            with m_col3:
+                man_h_cm = st.number_input("Ceiling Height (Y) in cm:", min_value=50.0, max_value=1000.0, value=270.0, step=10.0, key="man_h_cm")
+            with m_col4:
+                defect_target_wall = st.selectbox("Select Wall with Defect:", ["None (Clean / Sound Room)", "West Wall", "North Wall", "East Wall", "South Wall"], key="man_def_wall")
+
+            if st.button("⚡ Calculate Area & Generate 3D Model from CM Inputs", type="primary", key="btn_gen_man"):
+                from manual_entry import build_and_save_room
+                d_wall = None
+                if "West" in defect_target_wall: d_wall = 'west'
+                elif "North" in defect_target_wall: d_wall = 'north'
+                elif "East" in defect_target_wall: d_wall = 'east'
+                elif "South" in defect_target_wall: d_wall = 'south'
+                
+                build_and_save_room(man_w_cm, man_d_cm, man_h_cm, defect_wall=d_wall)
+                st.session_state['active_3d_path'] = 'data/room_scan.ply'
+                st.success(f"✅ Generated 3D scan from manual {man_w_cm:.0f}cm × {man_d_cm:.0f}cm × {man_h_cm:.0f}cm measurements! Reloading...")
+                st.rerun()
 
     # Load 3D Point Cloud Data
     xs, ys, zs, rs, gs, bs = [], [], [], [], [], []

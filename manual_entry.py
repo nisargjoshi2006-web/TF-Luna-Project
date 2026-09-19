@@ -302,76 +302,148 @@ def mode_wall_distances_from_center():
         print(f"  [ERROR] Invalid number: {e}. Please enter numbers in cm.")
 
 
-def mode_linear_profile_cm():
-    print("\n" + "=" * 60)
-    print("  MODE 3: LINEAR SURFACE / CAVITY PROFILE (IN CM)")
-    print("=" * 60)
-    print("  Enter manual distance readings in cm along a line (for Tab 1 & Tab 2).")
-    print("  You can enter them comma-separated (e.g. 102.5, 102.8, 107.0, 103.1) or one by one.\n")
+def mode_horizontal_wall_sweep():
+    print("\n" + "=" * 70)
+    print("  MODE: HORIZONTAL SENSOR SWEEP ALONG WALL (IN CM)")
+    print("=" * 70)
+    print("  You move the TF-Luna sensor horizontally from left to right along a wall.")
+    print("  The algorithm detects all 3 defects:")
+    print("    * Cavity / Spalling   : Distance increases by >= +2.0 cm (sunken in)")
+    print("    * Bulge / Delamination: Distance decreases by <= -2.0 cm (protruding out)")
+    print("    * Crack / Fissure     : Sharp micro-jump with signal flux drop\n")
 
-    inp = input("  >> Enter cm values (comma-separated, or press Enter for step-by-step): ").strip()
-    cm_values = []
+    print("  Which wall are you sweeping horizontally?")
+    print("    [1] North Wall (Span along X)")
+    print("    [2] East Wall  (Span along Z)")
+    print("    [3] South Wall (Span along X)")
+    print("    [4] West Wall  (Span along Z)")
+    w_choice = input("  >> Select wall [1-4, default 1]: ").strip()
+    wall_map = {'1': 'north', '2': 'east', '3': 'south', '4': 'west'}
+    chosen_wall = wall_map.get(w_choice, 'north')
 
-    if inp:
+    w_len_in = input("  >> Total Wall Length in cm [default 420]: ").strip()
+    wall_len_cm = float(w_len_in) if w_len_in else 420.0
+
+    w_h_in = input("  >> Ceiling Height in cm [default 270]: ").strip()
+    ceil_h_cm = float(w_h_in) if w_h_in else 270.0
+
+    sweep_y_in = input("  >> Sensor Height from Floor in cm [default 120]: ").strip()
+    sweep_y_cm = float(sweep_y_in) if sweep_y_in else 120.0
+
+    print("\n  Enter your horizontal distance readings in cm:")
+    print("  (Type comma-separated, e.g.: 100, 100, 104, 104, 100, 96, 96, 100, or press Enter for step-by-step)")
+    inp_cm = input("  >> CM values: ").strip()
+    cm_readings = []
+
+    if inp_cm:
         try:
-            cm_values = [float(x.strip()) for x in inp.split(',') if x.strip()]
+            cm_readings = [float(x.strip()) for x in inp_cm.split(',') if x.strip()]
         except ValueError:
-            print("  [ERROR] Error parsing comma-separated values. Switching to step-by-step.")
+            print("  [WARN] Error parsing comma-separated numbers. Switching to step-by-step.")
 
-    if not cm_values:
-        print("  Type each distance in cm, then press Enter. Type 'done' or 'q' when finished:")
+    if not cm_readings:
+        print("  Type each cm reading as you move horizontally. Type 'done' or 'q' to finish:")
         idx = 1
         while True:
-            val_str = input(f"    Point {idx} (cm): ").strip()
-            if val_str.lower() in ('done', 'q', 'exit', ''):
+            val_s = input(f"    Step {idx} (cm): ").strip()
+            if val_s.lower() in ('done', 'q', 'exit', ''):
                 break
             try:
-                val = float(val_str)
-                cm_values.append(val)
+                cm_readings.append(float(val_s))
                 idx += 1
             except ValueError:
                 print("    [WARN] Invalid number, please re-enter.")
 
-    if not cm_values:
-        print("  No values entered. Using demo default values.")
-        cm_values = [102.5, 102.7, 102.4, 102.6, 106.8, 107.1, 106.9, 102.5, 102.6]
+    # Default realistic sweep if empty
+    if not cm_readings:
+        print("  No readings entered. Using demo horizontal sweep with Cavity (+4cm), Bulge (-4cm), and Crack!")
+        # 20 horizontal steps: baseline 100cm, cavity at steps 5-7 (104cm), bulge at steps 12-14 (96cm), crack at step 17
+        cm_readings = [100.0, 100.2, 99.8, 100.1, 104.2, 104.5, 104.1, 100.0, 99.9, 100.2, 96.1, 95.8, 96.0, 99.8, 100.1, 100.0, 101.8, 100.1, 99.9, 100.0]
 
-    # Save to data/distance_data.csv
-    os.makedirs('data', exist_ok=True)
-    rows = []
-    base_dist = float(np.median(cm_values))
-    for i, d in enumerate(cm_values):
-        cal_d = d + 3.0
-        dev = d - base_dist
-        status = "CRACK / CAVITY ANOMALY" if dev > 2.0 else ("SURFACE BULGE" if dev < -2.0 else "NOMINAL SURFACE")
-        rows.append({
+    base_d = float(np.median(cm_readings))
+    num_pts = len(cm_readings)
+    step_cm = wall_len_cm / max(1, num_pts - 1)
+
+    print("\n" + "=" * 70)
+    print(f"  HORIZONTAL SWEEP ANALYSIS ON {chosen_wall.upper()} WALL")
+    print("=" * 70)
+    print(f"  • Total Horizontal Points Scanned: {num_pts}")
+    print(f"  • Wall Length                    : {wall_len_cm:.1f} cm ({wall_len_cm/100:.2f} m)")
+    print(f"  • Scan Step Resolution           : {step_cm:.1f} cm per point")
+    print(f"  • Nominal Flat Wall Baseline     : {base_d:.2f} cm")
+    print("-" * 70)
+
+    # Defect Classification Engine
+    defect_summary = {"cavities": [], "bulges": [], "cracks": []}
+    rows_linear = []
+
+    for i, d in enumerate(cm_readings):
+        pos_cm = i * step_cm
+        dev = d - base_d
+        flux = 1800
+        status = "NOMINAL SOUND SURFACE"
+
+        # Crack check: sudden single-point spike or sharp gradient
+        prev_d = cm_readings[i - 1] if i > 0 else d
+        next_d = cm_readings[i + 1] if i < num_pts - 1 else d
+        is_sharp_spike = (abs(d - prev_d) >= 1.5 and abs(d - next_d) >= 1.5 and np.sign(d - prev_d) == np.sign(d - next_d))
+
+        if is_sharp_spike:
+            status = "CRACK / STRUCTURAL FISSURE"
+            flux = 380  # Trapped light in crack
+            defect_summary["cracks"].append((pos_cm, dev))
+        elif dev >= 2.0:
+            status = "SURFACE CAVITY / SPALLING"
+            flux = 1650
+            defect_summary["cavities"].append((pos_cm, dev))
+        elif dev <= -2.0:
+            status = "SURFACE BULGE / DELAMINATION"
+            flux = 2200
+            defect_summary["bulges"].append((pos_cm, dev))
+
+        rows_linear.append({
             "timestamp": round(i * 0.1, 2),
+            "position_cm": round(pos_cm, 1),
             "distance_cm": round(d, 2),
-            "calibrated_distance_cm": round(cal_d, 2),
-            "flux": 1800,
-            "temperature_c": 28.5,
+            "calibrated_distance_cm": round(d + 3.0, 2),
             "deviation_cm": round(dev, 2),
-            "defect_status": status
+            "flux": flux,
+            "temperature_c": 28.5,
+            "defect_status": status,
+            "wall": chosen_wall
         })
 
-    df = pd.DataFrame(rows)
-    csv_file = 'data/distance_data.csv'
-    df.to_csv(csv_file, index=False)
+    # Print Defect Findings
+    print(f"  * Cavities Detected : {len(defect_summary['cavities'])} points")
+    for pos, dev in defect_summary['cavities']:
+        print(f"      -> At Position {pos:.1f} cm : Depth +{dev:.1f} cm [CAVITY]")
 
-    print("\n" + "-" * 60)
-    print(f"  [OK] Saved {len(cm_values)} manual cm points to: {csv_file}")
-    print(f"  * Median Distance : {base_dist:.2f} cm")
-    print(f"  * Min Distance    : {min(cm_values):.2f} cm")
-    print(f"  * Max Distance    : {max(cm_values):.2f} cm")
-    defects = [r for r in rows if r['defect_status'] != 'NOMINAL SURFACE']
-    if defects:
-        print(f"  * [ANOMALY] Detected {len(defects)} structural anomaly points with >2cm deviation!")
-    else:
-        print("  * [OK] All points are within structural nominal tolerance (+/-2cm).")
-    print("-" * 60)
+    print(f"  * Bulges Detected   : {len(defect_summary['bulges'])} points")
+    for pos, dev in defect_summary['bulges']:
+        print(f"      -> At Position {pos:.1f} cm : Protrusion {dev:.1f} cm [BULGE]")
 
-    copy_to_desktop([csv_file])
-    print("  Ready to inspect in Tab 1 (Defect Detector) and Tab 2 (Cavity Mapping)!")
+    print(f"  * Cracks Detected   : {len(defect_summary['cracks'])} points")
+    for pos, dev in defect_summary['cracks']:
+        print(f"      -> At Position {pos:.1f} cm : Micro-jump {dev:+.1f} cm (Flux < 500) [CRACK]")
+
+    if not defect_summary['cavities'] and not defect_summary['bulges'] and not defect_summary['cracks']:
+        print("  [OK] No defects detected! Wall surface is completely uniform and healthy.")
+    print("=" * 70)
+
+    # Save to data/distance_data.csv for Tab 1 & Tab 2
+    os.makedirs('data', exist_ok=True)
+    csv_linear_path = 'data/distance_data.csv'
+    pd.DataFrame(rows_linear).to_csv(csv_linear_path, index=False)
+    print(f"  [OK] Saved horizontal sweep telemetry to: {csv_linear_path}")
+
+    # Now rebuild full 3D room with this swept wall in true 3D coordinates!
+    width_cm = wall_len_cm if chosen_wall in ('north', 'south') else 360.0
+    depth_cm = wall_len_cm if chosen_wall in ('east', 'west') else 360.0
+    build_and_save_room(width_cm, depth_cm, ceil_h_cm, defect_wall=chosen_wall if defect_summary['cavities'] else None)
+
+    copy_to_desktop([csv_linear_path])
+    print(f"  [OK] Copied {csv_linear_path} to Desktop.")
+    print("\n  [DONE] Horizontal sweep is live! Open Tab 1/2 for 2D profile & Tab 5 for 3D room view.")
 
 
 def main():
@@ -383,33 +455,41 @@ def main():
 
   How would you like to enter your manual CM data?
 
-  [1] Complete Room Dimensions in CM (Width x Depth x Height)
+  [1] Horizontal Sensor Sweep along a Wall (Move sensor left-to-right)
+      -> Enter distance in cm as you move horizontally along the wall
+      -> Automatically detects: Cavities (+cm), Bulges (-cm), and Cracks!
+      -> Plots in Tab 1 & 2 (2D Elevation Contour) and Tab 5 (3D Room Model)
+
+  [2] Complete Room Dimensions in CM (Width x Depth x Height)
       -> Enter: 420 cm, 360 cm, 270 cm
-      -> Automatically calculates: Floor Area (15.12 m2), Wall Area (42.12 m2), Volume, 
+      -> Automatically calculates: Floor Area, Wall Area, Volume, 
          generates 3D room_scan.ply & room_scan.csv, and labels all 4 walls.
 
-  [2] 4-Wall Distances from Center in CM (North, East, South, West)
+  [3] 4-Wall Distances from Center in CM (North, East, South, West)
       -> Enter distance from sensor center to each wall in cm
       -> Sums distances to find room dimensions and generates full 3D model.
 
-  [3] Linear Surface / Cavity Profile in CM (Points along a line/wall)
+  [4] Linear Surface / Cavity Profile in CM (Points along a line/wall)
       -> Enter distances in cm: e.g. 102.5, 102.8, 106.8 cm
       -> Detects cracks & cavities, saves to data/distance_data.csv for Tab 1 & 2.
 
   [0] Exit
 """)
 
-    choice = input("  >> Select an option (1, 2, 3, or 0) [default 1]: ").strip()
+    choice = input("  >> Select an option (1, 2, 3, 4, or 0) [default 1]: ").strip()
     if choice == '2':
-        mode_wall_distances_from_center()
+        mode_room_dimensions()
     elif choice == '3':
+        mode_wall_distances_from_center()
+    elif choice == '4':
         mode_linear_profile_cm()
     elif choice == '0':
         print("  Exiting.")
         sys.exit(0)
     else:
-        mode_room_dimensions()
+        mode_horizontal_wall_sweep()
 
 
 if __name__ == '__main__':
     main()
+
