@@ -1,50 +1,17 @@
 {
-  "dimensions_meters": {
-    "width_x": 4.2,
-    "depth_z": 3.6,
-    "height_y": 2.7
-  },
   "dimensions_cm": {
     "width_x": 420,
     "depth_z": 360,
     "height_y": 270
   },
-  "metrology": {
-    "floor_area_m2": 15.12,
-    "floor_area_sqft": 162.8,
-    "wall_surface_area_m2": 42.12,
-    "wall_surface_area_sqft": 453.4,
-    "total_enclosed_area_m2": 72.36,
-    "room_volume_m3": 40.82,
-    "room_volume_cuft": 1441.5,
-    "perimeter_meters": 15.6
+  "dimensions_m": {
+    "width_x": 4.2,
+    "depth_z": 3.6,
+    "height_y": 2.7
   },
-  "walls": {
-    "north_wall": {
-      "span_m": 4.2,
-      "height_m": 2.7,
-      "area_m2": 11.34,
-      "status": "Sound"
-    },
-    "south_wall": {
-      "span_m": 4.2,
-      "height_m": 2.7,
-      "area_m2": 11.34,
-      "status": "Sound"
-    },
-    "east_wall": {
-      "span_m": 3.6,
-      "height_m": 2.7,
-      "area_m2": 9.72,
-      "status": "Sound"
-    },
-    "west_wall": {
-      "span_m": 3.6,
-      "height_m": 2.7,
-      "area_m2": 9.72,
-      "status": "Defect (+3.8cm Cavity)"
-    }
-  },
-  "total_3d_points": 5173,
-  "generated_at": "2026-09-20T00:34:19.056363"
+  "floor_area_m2": 15.12,
+  "wall_area_m2": 42.12,
+  "volume_m3": 40.82,
+  "perimeter_m": 15.6,
+  "total_3d_points": 4949
 }

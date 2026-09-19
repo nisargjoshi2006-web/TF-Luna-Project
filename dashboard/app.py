@@ -612,102 +612,23 @@ with tab5:
         if 'active_3d_path' in st.session_state and os.path.exists(st.session_state['active_3d_path']):
             active_3d_path = st.session_state['active_3d_path']
 
-    # Manual Measurement Input in CM (Horizontal Sweep or Room Dimensions)
-    with st.expander("📝 Enter Manual Measurements in CM (Horizontal Sweep or Dimensions)", expanded=False):
-        st.markdown("Choose how you took your measurements with the TF-Luna in **centimeters (cm)**:")
-        man_entry_mode = st.radio(
-            "Input Mode:", 
-            ["↔️ Horizontal Wall Sweep (Move sensor left-to-right along wall)", "🏠 Complete 3D Room Dimensions (Width × Depth × Height)"], 
-            key="man_mode", horizontal=True
-        )
+    # Simple Manual Measurement Input in CM (Before Measuring)
+    with st.expander("📝 Enter Room Measurements in CM (Simple 3-Input Mode)", expanded=False):
+        st.markdown("Enter your room measurements in **centimeters (cm)** before scanning:")
+        m_col1, m_col2, m_col3 = st.columns(3)
+        with m_col1:
+            man_w_cm = st.number_input("1. Room Width in cm (X):", min_value=50.0, max_value=2000.0, value=420.0, step=10.0, key="man_w_cm")
+        with m_col2:
+            man_d_cm = st.number_input("2. Room Depth in cm (Z):", min_value=50.0, max_value=2000.0, value=360.0, step=10.0, key="man_d_cm")
+        with m_col3:
+            man_h_cm = st.number_input("3. Room Height in cm (Y):", min_value=50.0, max_value=1000.0, value=270.0, step=10.0, key="man_h_cm")
 
-        if "Horizontal Wall Sweep" in man_entry_mode:
-            st.info("💡 **Horizontal Sweep Mode**: As you move the TF-Luna horizontally along a wall, enter your distance readings in cm. The system automatically detects **Cavities (+cm)**, **Bulges (-cm)**, and **Cracks**!")
-            h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
-            with h_col1:
-                sw_wall = st.selectbox("Select Scanned Wall:", ["North Wall (Span X)", "East Wall (Span Z)", "South Wall (Span X)", "West Wall (Span Z)"], key="sw_wall")
-            with h_col2:
-                sw_len_cm = st.number_input("Wall Length in cm:", min_value=100.0, max_value=2000.0, value=420.0, step=10.0, key="sw_len_cm")
-            with h_col3:
-                sw_ceil_cm = st.number_input("Ceiling Height in cm:", min_value=100.0, max_value=1000.0, value=270.0, step=10.0, key="sw_ceil_cm")
-
-            sw_readings_str = st.text_area(
-                "Enter Distance Readings in cm (comma-separated as you moved horizontally):",
-                value="100.0, 100.2, 99.8, 100.1, 104.2, 104.5, 104.1, 100.0, 99.9, 100.2, 96.1, 95.8, 96.0, 99.8, 100.1, 100.0, 101.8, 100.1, 99.9, 100.0",
-                help="Example: 100, 100, 104 (+4cm cavity), 100, 96 (-4cm bulge), 100",
-                key="sw_readings_str"
-            )
-
-            if st.button("⚡ Run Horizontal Sweep Analysis & 3D Reconstruction", type="primary", key="btn_run_sw"):
-                try:
-                    vals = [float(x.strip()) for x in sw_readings_str.split(',') if x.strip()]
-                    if len(vals) >= 2:
-                        from manual_entry import build_and_save_room
-                        target_wall = 'north' if 'North' in sw_wall else ('east' if 'East' in sw_wall else ('south' if 'South' in sw_wall else 'west'))
-                        w_cm = sw_len_cm if target_wall in ('north', 'south') else 360.0
-                        d_cm = sw_len_cm if target_wall in ('east', 'west') else 360.0
-                        
-                        # Check for cavities in vals
-                        base_d = float(np.median(vals))
-                        has_cavity = any((v - base_d) >= 2.0 for v in vals)
-
-                        build_and_save_room(w_cm, d_cm, sw_ceil_cm, defect_wall=target_wall if has_cavity else None)
-
-                        # Also save to data/distance_data.csv for Tab 1 & Tab 2
-                        step_c = sw_len_cm / max(1, len(vals) - 1)
-                        rows_sw = []
-                        for si, sv in enumerate(vals):
-                            sdev = sv - base_d
-                            sstat = "NOMINAL SOUND SURFACE"
-                            sflux = 1800
-                            if sdev >= 2.0:
-                                sstat = "SURFACE CAVITY / SPALLING"
-                            elif sdev <= -2.0:
-                                sstat = "SURFACE BULGE / DELAMINATION"
-                            rows_sw.append({
-                                "timestamp": round(si * 0.1, 2),
-                                "position_cm": round(si * step_c, 1),
-                                "distance_cm": round(sv, 2),
-                                "calibrated_distance_cm": round(sv + 3.0, 2),
-                                "deviation_cm": round(sdev, 2),
-                                "flux": sflux,
-                                "temperature_c": 28.5,
-                                "defect_status": sstat,
-                                "wall": target_wall
-                            })
-                        pd.DataFrame(rows_sw).to_csv('data/distance_data.csv', index=False)
-
-                        st.session_state['active_3d_path'] = 'data/room_scan.ply'
-                        st.success(f"✅ Processed {len(vals)} horizontal points on {sw_wall}! Detected defects mapped to Tab 1, 2, & 5.")
-                        st.rerun()
-                    else:
-                        st.error("Please enter at least 2 distance readings in cm.")
-                except Exception as e:
-                    st.error(f"Error processing readings: {e}")
-
-        else:
-            m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-            with m_col1:
-                man_w_cm = st.number_input("Room Width (X) in cm:", min_value=50.0, max_value=2000.0, value=420.0, step=10.0, key="man_w_cm")
-            with m_col2:
-                man_d_cm = st.number_input("Room Depth (Z) in cm:", min_value=50.0, max_value=2000.0, value=360.0, step=10.0, key="man_d_cm")
-            with m_col3:
-                man_h_cm = st.number_input("Ceiling Height (Y) in cm:", min_value=50.0, max_value=1000.0, value=270.0, step=10.0, key="man_h_cm")
-            with m_col4:
-                defect_target_wall = st.selectbox("Select Wall with Defect:", ["None (Clean / Sound Room)", "West Wall", "North Wall", "East Wall", "South Wall"], key="man_def_wall")
-
-            if st.button("⚡ Calculate Area & Generate 3D Model from CM Inputs", type="primary", key="btn_gen_man"):
-                from manual_entry import build_and_save_room
-                d_wall = None
-                if "West" in defect_target_wall: d_wall = 'west'
-                elif "North" in defect_target_wall: d_wall = 'north'
-                elif "East" in defect_target_wall: d_wall = 'east'
-                elif "South" in defect_target_wall: d_wall = 'south'
-                
-                build_and_save_room(man_w_cm, man_d_cm, man_h_cm, defect_wall=d_wall)
-                st.session_state['active_3d_path'] = 'data/room_scan.ply'
-                st.success(f"✅ Generated 3D scan from manual {man_w_cm:.0f}cm × {man_d_cm:.0f}cm × {man_h_cm:.0f}cm measurements! Reloading...")
-                st.rerun()
+        if st.button("⚡ Calculate Area & Build 3D Room", type="primary", key="btn_gen_man"):
+            from manual_entry import calculate_and_generate
+            calculate_and_generate(man_w_cm, man_d_cm, man_h_cm)
+            st.session_state['active_3d_path'] = 'data/room_scan.ply'
+            st.success(f"✅ Generated 3D scan for {man_w_cm:.0f}cm (W) × {man_d_cm:.0f}cm (D) × {man_h_cm:.0f}cm (H)! Reloading...")
+            st.rerun()
 
     # Load 3D Point Cloud Data
     xs, ys, zs, rs, gs, bs = [], [], [], [], [], []
