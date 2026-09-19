@@ -630,7 +630,7 @@ with tab5:
         with c_mode3d:
             engine_choice = st.radio("3D Visualizer Engine:", ["🎮 Three.js WebGL (60 FPS Smooth Orbit)", "📐 Plotly CAD Inspection (Coordinate Tooltips)"], horizontal=True, key="engine3d")
         with c_sz:
-            pt_size = st.slider("3D Dot Size (px):", min_value=2, max_value=16, value=5, key="pts5")
+            pt_size = st.slider("3D Dot Size (px):", min_value=2, max_value=20, value=6, key="pts5")
         with c_pal:
             color_mode = st.selectbox("Color Palette:", ["🌈 Rainbow Height Gradient", "🔵 Cyan Structural", "🔥 Thermal Depth Gradient"], key="pal5")
 
@@ -691,7 +691,7 @@ with tab5:
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
             const material = new THREE.PointsMaterial({{
-                size: {pt_size * 0.04:.2f},
+                size: {pt_size * 0.08:.2f},
                 vertexColors: true,
                 sizeAttenuation: true
             }});

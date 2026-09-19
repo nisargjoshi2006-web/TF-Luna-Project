@@ -57,17 +57,17 @@
       <div class="section-title">3D Model Info</div>
       <div class="info-row"><span class="label">Points Count:</span><span class="value" id="info-pts">0</span></div>
       <div class="info-row"><span class="label">Model Status:</span><span class="value" id="info-status">Waiting for load</span></div>
-      <div class="info-row"><span class="label">Width (X):</span><span class="value" id="info-w">3.20 m</span></div>
-      <div class="info-row"><span class="label">Depth (Z):</span><span class="value" id="info-d">2.80 m</span></div>
-      <div class="info-row"><span class="label">Height (Y):</span><span class="value" id="info-h">2.60 m</span></div>
-      <div class="info-row"><span class="label">Floor Area:</span><span class="value" id="info-area">8.96 m²</span></div>
+      <div class="info-row"><span class="label">Width (X):</span><span class="value" id="info-w">4.20 m</span></div>
+      <div class="info-row"><span class="label">Depth (Z):</span><span class="value" id="info-d">3.60 m</span></div>
+      <div class="info-row"><span class="label">Height (Y):</span><span class="value" id="info-h">2.70 m</span></div>
+      <div class="info-row"><span class="label">Floor Area:</span><span class="value" id="info-area">15.12 m²</span></div>
     </div>
     <hr style="border-color: var(--border);">
     <div>
       <div class="section-title">Point Display Settings</div>
       <div class="slider-row">
-        <label>Point Size: <span id="sz-val">3</span></label>
-        <input type="range" id="szSlider" min="1" max="15" value="3" oninput="updatePointSize(this.value)">
+        <label>Point Size: <span id="sz-val">6</span></label>
+        <input type="range" id="szSlider" min="1" max="15" value="6" oninput="updatePointSize(this.value)">
       </div>
     </div>
     <hr style="border-color: var(--border);">
@@ -153,7 +153,7 @@ function displayGeometry(geometry, name) {
 
   const pSize = parseFloat(document.getElementById('szSlider').value);
   const material = new THREE.PointsMaterial({
-    size: pSize * 0.05,
+    size: pSize * 0.08,
     vertexColors: true,
     sizeAttenuation: true
   });
@@ -176,7 +176,7 @@ function displayGeometry(geometry, name) {
   geometry.computeBoundingSphere();
   const sphere = geometry.boundingSphere;
   controls.target.copy(sphere.center);
-  camera.position.set(sphere.center.x, sphere.center.y + sphere.radius, sphere.center.z + sphere.radius * 2.2);
+  camera.position.set(sphere.center.x + sphere.radius * 1.2, sphere.center.y + sphere.radius * 1.1, sphere.center.z + sphere.radius * 2.0);
   controls.update();
 }
 
@@ -194,24 +194,33 @@ function loadUserPLY(input) {
 
 function loadRoomPreset() {
   const points = [];
-  // Generate a room with walls, floor and a table in the center
-  for (let x = -5; x <= 5; x += 0.2) {
-    for (let z = -5; z <= 5; z += 0.2) {
-      points.push(x, -2, z); // Floor
-      if (Math.abs(x) > 4.8 || Math.abs(z) > 4.8) {
-        for (let y = -2; y <= 3; y += 0.3) {
-          points.push(x, y, z); // Walls
-        }
-      }
-      // Table in the middle
-      if (Math.abs(x) < 1.5 && Math.abs(z) < 1.5) {
-        points.push(x, 0.5, z);
-      }
+  const rw = 4.20, rd = 3.60, rh = 2.70;
+  // Floor Grid
+  for (let x = 0; x <= rw + 0.05; x += 0.20) {
+    for (let z = 0; z <= rd + 0.05; z += 0.20) {
+      points.push(x, 0.0, z);
+    }
+  }
+  // 4 Multi-Tier Walls (20 height layers)
+  for (let y = 0.10; y <= rh; y += 0.14) {
+    for (let x = 0; x <= rw + 0.02; x += 0.12) {
+      points.push(x, y, rd); // North Wall
+      points.push(x, y, 0.0); // South Wall
+    }
+    for (let z = 0; z <= rd + 0.02; z += 0.12) {
+      points.push(rw, y, z); // East Wall
+      points.push(0.0, y, z); // West Wall
+    }
+  }
+  // Central Conference Table
+  for (let tx = 1.4; tx <= 2.8 + 0.02; tx += 0.10) {
+    for (let tz = 1.3; tz <= 2.3 + 0.02; tz += 0.10) {
+      points.push(tx, 0.75, tz);
     }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-  displayGeometry(geometry, 'Room 3D Scan');
+  displayGeometry(geometry, '3D Room Scan (4.20m × 3.60m × 2.70m)');
 }
 
 function loadSpherePreset() {
@@ -226,7 +235,7 @@ function loadDemoModel() {
 function updatePointSize(val) {
   document.getElementById('sz-val').textContent = val;
   if (pointCloud) {
-    pointCloud.material.size = parseFloat(val) * 0.05;
+    pointCloud.material.size = parseFloat(val) * 0.08;
   }
 }
 
