@@ -561,6 +561,26 @@ with tab5:
         if 'active_3d_path' in st.session_state and os.path.exists(st.session_state['active_3d_path']):
             active_3d_path = st.session_state['active_3d_path']
 
+    # Manual Measurement Input in CM
+    with st.expander("📝 Enter Manual Measurements in CM (Calculate Area & Generate 3D Model)", expanded=False):
+        st.markdown("Enter your manual physical measurements or LiDAR readings in **centimeters (cm)**:")
+        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        with m_col1:
+            man_w_cm = st.number_input("Room Width (X) in cm:", min_value=50.0, max_value=2000.0, value=420.0, step=10.0, key="man_w_cm")
+        with m_col2:
+            man_d_cm = st.number_input("Room Depth (Z) in cm:", min_value=50.0, max_value=2000.0, value=360.0, step=10.0, key="man_d_cm")
+        with m_col3:
+            man_h_cm = st.number_input("Ceiling Height (Y) in cm:", min_value=50.0, max_value=1000.0, value=270.0, step=10.0, key="man_h_cm")
+        with m_col4:
+            include_man_def = st.checkbox("Include West Wall Defect", value=True, key="man_def")
+
+        if st.button("⚡ Calculate Area & Generate 3D Model from CM Inputs", type="primary", key="btn_gen_man"):
+            from manual_entry import build_and_save_room
+            build_and_save_room(man_w_cm, man_d_cm, man_h_cm, defect_wall='west' if include_man_def else None)
+            st.session_state['active_3d_path'] = 'data/room_scan.ply'
+            st.success(f"✅ Generated 3D scan from manual {man_w_cm:.0f}cm × {man_d_cm:.0f}cm × {man_h_cm:.0f}cm measurements! Reloading...")
+            st.rerun()
+
     # Load 3D Point Cloud Data
     xs, ys, zs, rs, gs, bs = [], [], [], [], [], []
     active_3d_name = os.path.basename(active_3d_path)
