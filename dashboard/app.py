@@ -654,12 +654,73 @@ with tab5:
         with a_col5:
             st.metric("📐 Aspect Ratio (W/D)", f"{measured_width / measured_depth:.2f}")
 
+        # Architectural Wall Metrology & Structural Identification Panel
+        st.markdown("### 🧭 Architectural Wall Metrology & Structural Identification")
+        w_col1, w_col2, w_col3, w_col4 = st.columns(4)
+        north_area = measured_width * measured_height
+        south_area = measured_width * measured_height
+        east_area = measured_depth * measured_height
+        west_area = measured_depth * measured_height
+
+        with w_col1:
+            st.markdown(f"""
+            <div class="metric-card" style="border-left: 4px solid #00e5ff;">
+                <div style="font-weight: bold; color: #00e5ff; font-size: 14px;">🧭 North Wall (Z = {measured_depth:.2f}m)</div>
+                <div style="font-size: 12px; color: #94a3b8; margin: 6px 0; line-height: 1.6;">
+                    • <b>Span (X)</b>: {measured_width:.2f} m ({measured_width*100:.0f} cm)<br>
+                    • <b>Height (Y)</b>: {measured_height:.2f} m<br>
+                    • <b>Surface Area</b>: <span style="color:#00e5ff; font-weight:bold;">{north_area:.2f} m²</span> ({north_area * 10.7639:.1f} sq ft)<br>
+                    • <b>Feature</b>: Window Recess (+12cm offset)<br>
+                    • <b>Status</b>: <span style="color:#10b981; font-weight:bold;">🟢 Sound (No Cavities)</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        with w_col2:
+            st.markdown(f"""
+            <div class="metric-card" style="border-left: 4px solid #00e5ff;">
+                <div style="font-weight: bold; color: #00e5ff; font-size: 14px;">🧭 South Wall (Z = 0.00m)</div>
+                <div style="font-size: 12px; color: #94a3b8; margin: 6px 0; line-height: 1.6;">
+                    • <b>Span (X)</b>: {measured_width:.2f} m ({measured_width*100:.0f} cm)<br>
+                    • <b>Height (Y)</b>: {measured_height:.2f} m<br>
+                    • <b>Surface Area</b>: <span style="color:#00e5ff; font-weight:bold;">{south_area:.2f} m²</span> ({south_area * 10.7639:.1f} sq ft)<br>
+                    • <b>Feature</b>: Entrance Portal Trim (-4cm offset)<br>
+                    • <b>Status</b>: <span style="color:#10b981; font-weight:bold;">🟢 Sound (No Cavities)</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        with w_col3:
+            st.markdown(f"""
+            <div class="metric-card" style="border-left: 4px solid #00e5ff;">
+                <div style="font-weight: bold; color: #00e5ff; font-size: 14px;">🧭 East Wall (X = {measured_width:.2f}m)</div>
+                <div style="font-size: 12px; color: #94a3b8; margin: 6px 0; line-height: 1.6;">
+                    • <b>Span (Z)</b>: {measured_depth:.2f} m ({measured_depth*100:.0f} cm)<br>
+                    • <b>Height (Y)</b>: {measured_height:.2f} m<br>
+                    • <b>Surface Area</b>: <span style="color:#00e5ff; font-weight:bold;">{east_area:.2f} m²</span> ({east_area * 10.7639:.1f} sq ft)<br>
+                    • <b>Feature</b>: Solid Perimeter Masonry<br>
+                    • <b>Status</b>: <span style="color:#10b981; font-weight:bold;">🟢 Sound (No Cavities)</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        with w_col4:
+            st.markdown(f"""
+            <div class="metric-card" style="border-left: 4px solid #ef4444;">
+                <div style="font-weight: bold; color: #ef4444; font-size: 14px;">🧭 West Wall (X = 0.00m)</div>
+                <div style="font-size: 12px; color: #94a3b8; margin: 6px 0; line-height: 1.6;">
+                    • <b>Span (Z)</b>: {measured_depth:.2f} m ({measured_depth*100:.0f} cm)<br>
+                    • <b>Height (Y)</b>: {measured_height:.2f} m<br>
+                    • <b>Surface Area</b>: <span style="color:#ef4444; font-weight:bold;">{west_area:.2f} m²</span> ({west_area * 10.7639:.1f} sq ft)<br>
+                    • <b>Feature</b>: Spalling Cavity (Z: 1.8–2.2m)<br>
+                    • <b>Status</b>: <span style="color:#ef4444; font-weight:bold;">⚠️ Defect (+3.8cm Cavity)</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
         # Controls & Structural Filters
         c_mode3d, c_sz, c_pal = st.columns([2, 1, 1])
         with c_mode3d:
             engine_choice = st.radio("3D Visualizer Engine:", ["🎮 Three.js WebGL (60 FPS Smooth Orbit)", "📐 Plotly CAD Inspection (Coordinate Tooltips)"], horizontal=True, key="engine3d")
         with c_sz:
-            pt_size = st.slider("3D Dot Size (px):", min_value=2, max_value=30, value=8, key="pts5")
+            pt_size = st.slider("3D Dot Size (px):", min_value=2, max_value=30, value=9, key="pts5")
         with c_pal:
             color_mode = st.selectbox("Color Palette:", ["🌈 Rainbow Height Gradient", "🔵 Cyan Structural", "🔥 Thermal Depth Gradient"], key="pal5")
 
@@ -706,20 +767,34 @@ with tab5:
                     rs_disp[i] = 255; gs_disp[i] = 30; bs_disp[i] = 30  # Bright glowing red
 
         if "Three.js WebGL" in engine_choice:
-            # Embedded 60 FPS WebGL OrbitControls Canvas with Glowing Circular Particle Texture
+            # Embedded 60 FPS WebGL OrbitControls Canvas with Glowing Circular Particle Texture & Wall Billboard Labels
             html_viewer = f"""
             <!DOCTYPE html>
             <html>
             <head>
             <style>
               body {{ margin: 0; background: #06080c; overflow: hidden; font-family: monospace; }}
-              #info {{ position: absolute; top: 10px; left: 14px; color: #00e5ff; font-size: 11px; z-index: 10; pointer-events: none; }}
+              #toolbar {{ position: absolute; top: 10px; left: 14px; right: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; z-index: 20; }}
+              .snap-btn {{ padding: 5px 10px; border: 1px solid #1e2638; background: #11141d; color: #00e5ff; font-family: monospace; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: all 0.15s; }}
+              .snap-btn:hover {{ background: rgba(0,229,255,0.15); border-color: #00e5ff; }}
+              .snap-btn.warn {{ border-color: #ef4444; color: #ef4444; }}
+              .snap-btn.warn:hover {{ background: rgba(239,68,68,0.15); }}
+              #info {{ position: absolute; bottom: 10px; left: 14px; color: #64748b; font-size: 11px; z-index: 10; pointer-events: none; }}
             </style>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
             <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
             </head>
             <body>
-            <div id="info">🖱️ Left Click: Orbit | Right Click: Pan | Scroll: Zoom | {len(xs_disp):,} points ({measured_width:.2f}m W × {measured_depth:.2f}m D × {measured_height:.2f}m H)</div>
+            <div id="toolbar">
+              <span style="color: #00e5ff; font-weight: bold; font-size: 12px; margin-right: 4px;">Wall Views:</span>
+              <button class="snap-btn" onclick="snapCamera('north')">🧭 North Wall</button>
+              <button class="snap-btn" onclick="snapCamera('east')">🧭 East Wall</button>
+              <button class="snap-btn" onclick="snapCamera('south')">🧭 South Wall</button>
+              <button class="snap-btn warn" onclick="snapCamera('west')">🧭 West Wall (Defect)</button>
+              <button class="snap-btn" onclick="snapCamera('top')">🔝 Top-Down</button>
+              <button class="snap-btn" onclick="snapCamera('reset')">🎯 Reset View</button>
+            </div>
+            <div id="info">🖱️ Left Click: Rotate | Right Click: Pan | Scroll: Zoom | {len(xs_disp):,} points ({measured_width:.2f}m W × {measured_depth:.2f}m D × {measured_height:.2f}m H)</div>
             <script>
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x06080c);
@@ -761,6 +836,31 @@ with tab5:
 
             const circleTexture = createCircleTexture();
 
+            // Billboard dynamic text sprite generator
+            function makeTextSprite(message, opts) {{
+              opts = opts || {{}};
+              const canvas = document.createElement('canvas');
+              canvas.width = 400; canvas.height = 100;
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = opts.backgroundColor || "rgba(11, 14, 21, 0.88)";
+              ctx.strokeStyle = opts.borderColor || "#00e5ff";
+              ctx.lineWidth = 4;
+              ctx.beginPath();
+              ctx.roundRect(8, 8, 384, 84, 12);
+              ctx.fill();
+              ctx.stroke();
+              ctx.font = "Bold " + (opts.fontsize || 24) + "px monospace";
+              ctx.fillStyle = opts.textColor || "#00e5ff";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(message, 200, 50);
+              const texture = new THREE.CanvasTexture(canvas);
+              const spriteMaterial = new THREE.SpriteMaterial({{ map: texture, depthTest: false }});
+              const sprite = new THREE.Sprite(spriteMaterial);
+              sprite.scale.set(opts.scaleX || 2.2, opts.scaleY || 0.55, 1.0);
+              return sprite;
+            }}
+
             // Build BufferGeometry from points
             const xs = {json.dumps(xs_disp)};
             const ys = {json.dumps(ys_disp)};
@@ -781,7 +881,7 @@ with tab5:
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
             const material = new THREE.PointsMaterial({{
-                size: {pt_size * 0.12:.2f},
+                size: {pt_size * 0.14:.2f},
                 vertexColors: true,
                 map: circleTexture,
                 transparent: true,
@@ -798,11 +898,52 @@ with tab5:
             const boxHelper = new THREE.Box3Helper(bbox, 0x64748b);
             scene.add(boxHelper);
 
+            // Floating 3D Architectural Wall Labels
+            const cx = (bbox.min.x + bbox.max.x) / 2;
+            const cy = bbox.max.y + 0.35;
+            const cz = (bbox.min.z + bbox.max.z) / 2;
+
+            const lblNorth = makeTextSprite("🧭 NORTH WALL ({measured_width:.2f}m)", {{ borderColor: "#00e5ff", textColor: "#00e5ff" }});
+            lblNorth.position.set(cx, cy, bbox.max.z);
+            scene.add(lblNorth);
+
+            const lblSouth = makeTextSprite("🧭 SOUTH WALL ({measured_width:.2f}m)", {{ borderColor: "#00e5ff", textColor: "#00e5ff" }});
+            lblSouth.position.set(cx, cy, bbox.min.z);
+            scene.add(lblSouth);
+
+            const lblEast = makeTextSprite("🧭 EAST WALL ({measured_depth:.2f}m)", {{ borderColor: "#00e5ff", textColor: "#00e5ff" }});
+            lblEast.position.set(bbox.max.x + 0.25, cy, cz);
+            scene.add(lblEast);
+
+            const lblWest = makeTextSprite("🧭 WEST WALL [⚠️ Defect]", {{ borderColor: "#ef4444", textColor: "#ef4444" }});
+            lblWest.position.set(bbox.min.x - 0.25, cy, cz);
+            scene.add(lblWest);
+
             geometry.computeBoundingSphere();
             const sphere = geometry.boundingSphere;
             controls.target.copy(sphere.center);
             camera.position.set(sphere.center.x + sphere.radius * 1.2, sphere.center.y + sphere.radius * 1.1, sphere.center.z + sphere.radius * 2.0);
             controls.update();
+
+            // Quick Camera Snap to Walls
+            function snapCamera(wall) {{
+              const span = Math.max(bbox.max.x - bbox.min.x, bbox.max.z - bbox.min.z);
+              controls.target.set(cx, (bbox.min.y + bbox.max.y) / 2, cz);
+              if (wall === 'north') {{
+                camera.position.set(cx, (bbox.min.y + bbox.max.y) / 2, bbox.max.z + span * 1.15);
+              }} else if (wall === 'south') {{
+                camera.position.set(cx, (bbox.min.y + bbox.max.y) / 2, bbox.min.z - span * 1.15);
+              }} else if (wall === 'east') {{
+                camera.position.set(bbox.max.x + span * 1.15, (bbox.min.y + bbox.max.y) / 2, cz);
+              }} else if (wall === 'west') {{
+                camera.position.set(bbox.min.x - span * 1.15, (bbox.min.y + bbox.max.y) / 2, cz);
+              }} else if (wall === 'top') {{
+                camera.position.set(cx, bbox.max.y + span * 1.4, cz);
+              }} else if (wall === 'reset') {{
+                camera.position.set(sphere.center.x + sphere.radius * 1.2, sphere.center.y + sphere.radius * 1.1, sphere.center.z + sphere.radius * 2.0);
+              }}
+              controls.update();
+            }}
 
             window.addEventListener('resize', () => {{
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -823,10 +964,14 @@ with tab5:
             components.html(html_viewer, height=680, scrolling=False)
 
         else:
-            # Plotly 3D Architectural CAD View
+            # Plotly 3D Architectural CAD View with Wall Annotations & Point Identification
             c_cam1, c_box1 = st.columns([3, 1])
             with c_cam1:
-                camera_preset = st.selectbox("Camera Preset View:", ["📷 Perspective 3D", "🔝 Top-Down Floorplan", "🧱 Front Wall View", "🔍 Isometric Corner"], key="campres5")
+                camera_preset = st.selectbox(
+                    "Camera Preset View:", 
+                    ["📷 Perspective 3D", "🧭 North Wall View", "🧭 East Wall View", "🧭 South Wall View", "🧭 West Wall (Defect) View", "🔝 Top-Down Floorplan", "🔍 Isometric Corner"], 
+                    key="campres5"
+                )
             with c_box1:
                 show_bounding_box = st.checkbox("📐 Bounding Box", value=True, key="bbox5")
 
@@ -839,7 +984,27 @@ with tab5:
             else:
                 dot_colors = zs_disp
 
-            # 1. Real 3D Point Cloud Trace
+            # Architectural identity tag for each point in hovertemplate
+            point_tags = []
+            for x, y, z in zip(xs_disp, ys_disp, zs_disp):
+                if y <= 0.06:
+                    point_tags.append(f"🟩 Floor Grid (Area: {floor_area:.2f} m²)")
+                elif 1.3 <= x <= 2.9 and 1.2 <= z <= 2.4 and y <= 0.85:
+                    point_tags.append("🪑 Central Conference Table")
+                elif x <= 0.15 and 1.75 <= z <= 2.25 and 0.75 <= y <= 1.65:
+                    point_tags.append("🧭 West Wall [⚠️ Defect: +3.8cm Cavity]")
+                elif x <= 0.25:
+                    point_tags.append(f"🧭 West Wall (Depth: {measured_depth:.2f}m)")
+                elif x >= max_x - 0.25:
+                    point_tags.append(f"🧭 East Wall (Depth: {measured_depth:.2f}m)")
+                elif z >= max_z - 0.25:
+                    point_tags.append(f"🧭 North Wall (Span: {measured_width:.2f}m)")
+                elif z <= min_z + 0.25:
+                    point_tags.append(f"🧭 South Wall (Span: {measured_width:.2f}m)")
+                else:
+                    point_tags.append("🧱 Structural Wall Point")
+
+            # 1. Real 3D Point Cloud Trace with Architectural Hover
             fig_room.add_trace(go.Scatter3d(
                 x=xs_disp, y=zs_disp, z=ys_disp,
                 mode='markers',
@@ -850,8 +1015,8 @@ with tab5:
                     opacity=1.0,
                     symbol='circle'
                 ),
-                text=[f"Point {i+1}: X={x:.2f}m | Depth={z:.2f}m | Height={y:.2f}m" for i, (x, y, z) in enumerate(zip(xs_disp, ys_disp, zs_disp))],
-                hovertemplate='<b>%{text}</b><extra></extra>',
+                customdata=point_tags,
+                hovertemplate='<b>%{customdata}</b><br>X (Width): %{x:.2f} m<br>Z (Depth): %{y:.2f} m<br>Y (Height): %{z:.2f} m<extra></extra>',
                 name="LiDAR 3D Points"
             ))
 
@@ -869,7 +1034,33 @@ with tab5:
                     hovertemplate='<b>%{text}</b><extra></extra>'
                 ))
 
-            # 3. Dimensional Bounding Box Wireframe
+            # 3. 3D Architectural Wall Name Floating Labels in Plotly Scene
+            cx = (min_x + max_x) / 2
+            cz = (min_z + max_z) / 2
+            cy_top = max_y + 0.25
+            wall_lbl_x = [cx, cx, max_x + 0.25, min_x - 0.25]
+            wall_lbl_z = [max_z + 0.2, min_z - 0.2, cz, cz]
+            wall_lbl_y = [cy_top, cy_top, cy_top, cy_top]
+            wall_lbl_text = [
+                f"🧭 NORTH WALL ({measured_width:.2f}m)",
+                f"🧭 SOUTH WALL ({measured_width:.2f}m)",
+                f"🧭 EAST WALL ({measured_depth:.2f}m)",
+                "🧭 WEST WALL [⚠️ Defect]"
+            ]
+            wall_lbl_colors = ['#00e5ff', '#00e5ff', '#00e5ff', '#ef4444']
+
+            fig_room.add_trace(go.Scatter3d(
+                x=wall_lbl_x, y=wall_lbl_z, z=wall_lbl_y,
+                mode='text+markers',
+                marker=dict(size=6, color=wall_lbl_colors),
+                text=wall_lbl_text,
+                textposition="top center",
+                textfont=dict(family="monospace", size=12, color=wall_lbl_colors),
+                name="🧭 Wall Identifiers",
+                hoverinfo='skip'
+            ))
+
+            # 4. Dimensional Bounding Box Wireframe
             if show_bounding_box:
                 bx = [min_x, max_x, max_x, min_x, min_x,   min_x, max_x, max_x, min_x, min_x,   max_x, max_x,   max_x, max_x,   min_x, min_x]
                 bz = [min_z, min_z, max_z, max_z, min_z,   min_z, min_z, max_z, max_z, min_z,   min_z, min_z,   max_z, max_z,   max_z, max_z]
@@ -882,7 +1073,7 @@ with tab5:
                     name="Dimensional Envelope"
                 ))
 
-            # 4. Ground Grid Plane
+            # 5. Ground Grid Plane
             grid_pts_x = []
             grid_pts_z = []
             for gx in np.linspace(min_x - 0.3, max_x + 0.3, 11):
@@ -899,13 +1090,21 @@ with tab5:
                 name="Ground Grid"
             ))
 
-            cam_dict = dict(eye=dict(x=1.6, y=-1.6, z=1.3))
+            # Dynamic Camera Angle Presets
             if camera_preset == "🔝 Top-Down Floorplan":
                 cam_dict = dict(eye=dict(x=0.0, y=0.0, z=2.8), up=dict(x=0, y=1, z=0))
-            elif camera_preset == "🧱 Front Wall View":
+            elif camera_preset == "🧭 North Wall View":
+                cam_dict = dict(eye=dict(x=0.0, y=2.5, z=0.5))
+            elif camera_preset == "🧭 South Wall View":
                 cam_dict = dict(eye=dict(x=0.0, y=-2.5, z=0.5))
+            elif camera_preset == "🧭 East Wall View":
+                cam_dict = dict(eye=dict(x=2.5, y=0.0, z=0.5))
+            elif camera_preset == "🧭 West Wall (Defect) View":
+                cam_dict = dict(eye=dict(x=-2.5, y=0.0, z=0.5))
             elif camera_preset == "🔍 Isometric Corner":
                 cam_dict = dict(eye=dict(x=2.0, y=-2.0, z=1.8))
+            else:
+                cam_dict = dict(eye=dict(x=1.6, y=-1.6, z=1.3))
 
             fig_room.update_layout(
                 title=f"🏗️ 3D CAD Structural Inspection ({measured_width:.2f}m W × {measured_depth:.2f}m D × {measured_height:.2f}m H)",

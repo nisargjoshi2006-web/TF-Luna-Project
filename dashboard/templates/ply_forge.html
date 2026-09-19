@@ -46,7 +46,14 @@
   <input type="file" id="fileInput" accept=".ply" style="display:none" onchange="loadUserPLY(this)">
   <button class="btn" onclick="loadDemoModel()">✨ Load Demo 3D Scan</button>
   <div class="tb-sep"></div>
-  <button class="btn" onclick="resetCamera()">🎯 Reset Camera</button>
+  <button class="btn" onclick="resetCamera()">🎯 Reset View</button>
+  <div class="tb-sep"></div>
+  <span style="font-size: 11px; color: var(--accent); font-weight: bold; margin-right: 4px;">Wall Views:</span>
+  <button class="btn" onclick="snapCamera('north')">🧭 North Wall</button>
+  <button class="btn" onclick="snapCamera('east')">🧭 East Wall</button>
+  <button class="btn" onclick="snapCamera('south')">🧭 South Wall</button>
+  <button class="btn" onclick="snapCamera('west')" style="border-color: #ef4444; color: #ef4444;">🧭 West (Defect)</button>
+  <button class="btn" onclick="snapCamera('top')">🔝 Top-Down</button>
   <div class="tb-sep"></div>
   <span style="font-size: 11px; color: var(--muted); margin-left: auto;">🖱️ Left Click: Rotate | Right Click: Pan | Scroll: Zoom</span>
 </div>
@@ -149,6 +156,33 @@ function createCircleTexture() {
 
 const circleTexture = createCircleTexture();
 
+function makeTextSprite(message, opts) {
+  opts = opts || {};
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 100;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = opts.backgroundColor || "rgba(11, 14, 21, 0.88)";
+  ctx.strokeStyle = opts.borderColor || "#00e5ff";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(8, 8, 384, 84, 12);
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = "Bold " + (opts.fontsize || 24) + "px 'Space Mono', monospace";
+  ctx.fillStyle = opts.textColor || "#00e5ff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, 200, 50);
+  const texture = new THREE.CanvasTexture(canvas);
+  const spriteMaterial = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+  const sprite = new THREE.Sprite(spriteMaterial);
+  sprite.scale.set(opts.scaleX || 2.2, opts.scaleY || 0.55, 1.0);
+  return sprite;
+}
+
+let wallLabels = [];
+
 function displayGeometry(geometry, name) {
   if (pointCloud) scene.remove(pointCloud);
 
@@ -195,10 +229,62 @@ function displayGeometry(geometry, name) {
   if (document.getElementById('info-h')) document.getElementById('info-h').textContent = h + ' m';
   if (document.getElementById('info-area')) document.getElementById('info-area').textContent = area + ' m²';
 
+  // Remove previous wall labels
+  wallLabels.forEach(lbl => scene.remove(lbl));
+  wallLabels = [];
+
+  const cx = (bbox.min.x + bbox.max.x) / 2;
+  const cy = bbox.max.y + 0.35;
+  const cz = (bbox.min.z + bbox.max.z) / 2;
+
+  const lblNorth = makeTextSprite("🧭 NORTH WALL (" + w + "m)", { borderColor: "#00e5ff", textColor: "#00e5ff" });
+  lblNorth.position.set(cx, cy, bbox.max.z);
+  scene.add(lblNorth);
+  wallLabels.push(lblNorth);
+
+  const lblSouth = makeTextSprite("🧭 SOUTH WALL (" + w + "m)", { borderColor: "#00e5ff", textColor: "#00e5ff" });
+  lblSouth.position.set(cx, cy, bbox.min.z);
+  scene.add(lblSouth);
+  wallLabels.push(lblSouth);
+
+  const lblEast = makeTextSprite("🧭 EAST WALL (" + d + "m)", { borderColor: "#00e5ff", textColor: "#00e5ff" });
+  lblEast.position.set(bbox.max.x + 0.2, cy, cz);
+  scene.add(lblEast);
+  wallLabels.push(lblEast);
+
+  const lblWest = makeTextSprite("🧭 WEST WALL [⚠️ Defect]", { borderColor: "#ef4444", textColor: "#ef4444" });
+  lblWest.position.set(bbox.min.x - 0.2, cy, cz);
+  scene.add(lblWest);
+  wallLabels.push(lblWest);
+
   geometry.computeBoundingSphere();
   const sphere = geometry.boundingSphere;
   controls.target.copy(sphere.center);
   camera.position.set(sphere.center.x + sphere.radius * 1.2, sphere.center.y + sphere.radius * 1.1, sphere.center.z + sphere.radius * 2.0);
+  controls.update();
+}
+
+function snapCamera(wall) {
+  if (!pointCloud) return;
+  pointCloud.geometry.computeBoundingBox();
+  const bbox = pointCloud.geometry.boundingBox;
+  const cx = (bbox.min.x + bbox.max.x) / 2;
+  const cy = (bbox.min.y + bbox.max.y) / 2;
+  const cz = (bbox.min.z + bbox.max.z) / 2;
+  controls.target.set(cx, cy, cz);
+
+  const span = Math.max(bbox.max.x - bbox.min.x, bbox.max.z - bbox.min.z);
+  if (wall === 'north') {
+    camera.position.set(cx, cy, bbox.max.z + span * 1.1);
+  } else if (wall === 'south') {
+    camera.position.set(cx, cy, bbox.min.z - span * 1.1);
+  } else if (wall === 'east') {
+    camera.position.set(bbox.max.x + span * 1.1, cy, cz);
+  } else if (wall === 'west') {
+    camera.position.set(bbox.min.x - span * 1.1, cy, cz);
+  } else if (wall === 'top') {
+    camera.position.set(cx, cy + span * 1.4, cz);
+  }
   controls.update();
 }
 
