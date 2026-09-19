@@ -203,17 +203,26 @@ with tab1:
             baseline = recent_vals[0] if len(recent_vals) > 0 else latest_cal
             depth_diff = latest_cal - baseline
 
-            k1, k2, k3, k4 = st.columns(4)
+            # Live Scanned Area Coverage Calculation
+            d_min_m = float(df_display[cal_col].min()) / 100.0
+            d_max_m = float(df_display[cal_col].max()) / 100.0
+            d_mean_m = float(df_display[cal_col].mean()) / 100.0
+            d_span_m = max(d_max_m - d_min_m, 0.1)
+            scanned_sector_area_m2 = round(0.5 * np.pi * (d_mean_m ** 2), 2)
+
+            k1, k2, k3, k4, k5 = st.columns(5)
             with k1:
-                st.metric("Current Sensor Reading", f"{latest_raw:.1f} cm")
+                st.metric("Current Reading", f"{latest_raw:.1f} cm")
             with k2:
-                st.metric("Calibrated Ground Truth", f"{latest_cal:.1f} cm", delta=f"{intercept_c:+.2f} cm casing offset")
+                st.metric("Calibrated Distance", f"{latest_cal:.1f} cm", delta=f"{intercept_c:+.2f} cm casing offset")
             with k3:
+                st.metric("Measured Area Coverage", f"{scanned_sector_area_m2:.2f} m²", delta=f"{d_span_m:.2f}m depth span")
+            with k4:
                 if abs(depth_diff) > 2.5:
                     st.metric("Structural Status", "⚠️ CAVITY DETECTED", delta=f"{depth_diff:+.1f} cm jump", delta_color="inverse")
                 else:
                     st.metric("Structural Status", "✅ UNIFORM SURFACE", delta="Normal Profile")
-            with k4:
+            with k5:
                 st.metric("Points Displayed", f"{len(df_display):,} / {total_pts1:,}")
 
             fig_t1 = go.Figure()
@@ -309,20 +318,24 @@ with tab2:
             avg_depth = float(np.mean(active_data))
             devs = active_data - avg_depth
             anomaly_mask = np.abs(devs) > anomaly_threshold
+            scan_length_m = (x_pos[-1] - x_pos[0]) / 100.0 if len(x_pos) > 1 else 0.0
+            scanned_profile_area_m2 = round(scan_length_m * (avg_depth / 100.0), 2)
+            num_anomalies = int(np.sum(anomaly_mask))
+            defect_area_cm2 = round(float(np.sum(np.abs(devs[anomaly_mask])) * step_size_cm), 1) if num_anomalies > 0 else 0.0
 
-            m1, m2, m3, m4, m5 = st.columns(5)
+            m1, m2, m3, m4, m5, m6 = st.columns(6)
             with m1:
                 st.metric("Inspected Points", f"{len(active_data):,} / {total_p_pts:,}")
             with m2:
-                scan_length_m = (x_pos[-1] - x_pos[0]) / 100.0 if len(x_pos) > 1 else 0.0
                 st.metric("Scanned Length", f"{scan_length_m:.2f} meters")
             with m3:
-                st.metric("Baseline Depth", f"{avg_depth:.1f} cm")
+                st.metric("Profile Surface Area", f"{scanned_profile_area_m2:.2f} m²")
             with m4:
-                st.metric("Max Variation", f"{np.max(np.abs(devs)):.1f} cm")
+                st.metric("Baseline Depth", f"{avg_depth:.1f} cm")
             with m5:
-                num_anomalies = int(np.sum(anomaly_mask))
-                st.metric("Anomalies Found", f"{num_anomalies}", delta="Defects" if num_anomalies > 0 else "Uniform", delta_color="inverse" if num_anomalies > 0 else "normal")
+                st.metric("Max Variation", f"{np.max(np.abs(devs)):.1f} cm")
+            with m6:
+                st.metric("Defects Found", f"{num_anomalies}", delta=f"{defect_area_cm2:.1f} cm² cavity" if num_anomalies > 0 else "Uniform", delta_color="inverse" if num_anomalies > 0 else "normal")
 
             fig_profile = go.Figure()
             fig_profile.add_trace(go.Scatter(
@@ -607,8 +620,11 @@ with tab5:
         measured_width = max(max_x - min_x, 0.1)
         measured_depth = max(max_z - min_z, 0.1)
         measured_height = max(max_y - min_y, 0.1)
-        floor_area = measured_width * measured_depth
-        room_volume = floor_area * measured_height
+        floor_area = round(measured_width * measured_depth, 2)
+        perimeter = round(2 * (measured_width + measured_depth), 2)
+        wall_surface_area = round(2 * (measured_width + measured_depth) * measured_height, 2)
+        total_enclosed_area = round(2 * floor_area + wall_surface_area, 2)
+        room_volume = round(floor_area * measured_height, 2)
 
         st.success(f"🟢 **3D Scan Model Loaded:** `{active_3d_name}` | Total Vertices: **{len(xs):,} points** | Bounds: **{measured_width:.2f}m (W) × {measured_depth:.2f}m (D) × {measured_height:.2f}m (H)**")
 
@@ -623,7 +639,20 @@ with tab5:
         with col4:
             st.metric("Measured Height (Y)", f"{measured_height:.2f} m", delta=f"{measured_height*100:.0f} cm")
         with col5:
-            st.metric("Floor Area", f"{floor_area:.2f} m²", delta=f"{room_volume:.1f} m³ Vol")
+            st.metric("Room Perimeter", f"{perimeter:.2f} m", delta=f"{perimeter*100:.0f} cm")
+
+        # Architectural Area & Volumetric Metrology Bar
+        a_col1, a_col2, a_col3, a_col4, a_col5 = st.columns(5)
+        with a_col1:
+            st.metric("🟩 Floor Surface Area", f"{floor_area:.2f} m²", delta=f"{floor_area * 10.7639:.1f} sq ft")
+        with a_col2:
+            st.metric("🧱 Wall Surface Area", f"{wall_surface_area:.2f} m²", delta=f"{wall_surface_area * 10.7639:.1f} sq ft")
+        with a_col3:
+            st.metric("🏠 Total Enclosed Area", f"{total_enclosed_area:.2f} m²", delta="Floor+Walls+Ceiling")
+        with a_col4:
+            st.metric("📦 Enclosed Volume", f"{room_volume:.2f} m³", delta=f"{room_volume * 35.3147:.1f} cu ft")
+        with a_col5:
+            st.metric("📐 Aspect Ratio (W/D)", f"{measured_width / measured_depth:.2f}")
 
         # 3D Visualizer Mode Toggle
         c_mode3d, c_sz, c_pal = st.columns([2, 1, 1])

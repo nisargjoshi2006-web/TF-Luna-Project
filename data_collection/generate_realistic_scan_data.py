@@ -248,7 +248,58 @@ def generate_realistic_room_dataset():
             r, g, b = rainbow_color_for_height(h_frac)
             f.write(f"{x:.4f} {y:.4f} {z:.4f} {r} {g} {b}\n")
 
+    # Real-Time Architectural Area and Volume Calculations
+    floor_area_m2 = round(room_w * room_d, 2)
+    perimeter_m = round(2 * (room_w + room_d), 2)
+    wall_surface_area_m2 = round(2 * (room_w + room_d) * room_h, 2)
+    total_surface_area_m2 = round(2 * floor_area_m2 + wall_surface_area_m2, 2)
+    room_volume_m3 = round(floor_area_m2 * room_h, 2)
+
+    summary_data = {
+        "scan_timestamp": "2026-09-20T00:00:00",
+        "samples_captured": total_samples,
+        "duration_seconds": 24.0,
+        "dimensions": {
+            "width_m": room_w,
+            "depth_m": room_d,
+            "height_m": room_h,
+            "width_cm": round(room_w * 100, 1),
+            "depth_cm": round(room_d * 100, 1),
+            "height_cm": round(room_h * 100, 1)
+        },
+        "area_metrology": {
+            "floor_area_m2": floor_area_m2,
+            "floor_area_sqft": round(floor_area_m2 * 10.7639, 2),
+            "perimeter_m": perimeter_m,
+            "wall_surface_area_m2": wall_surface_area_m2,
+            "total_enclosed_area_m2": total_surface_area_m2,
+            "room_volume_m3": room_volume_m3,
+            "room_volume_cuft": round(room_volume_m3 * 35.3147, 2)
+        }
+    }
+    with open('data/room_scan_summary.json', 'w') as f_sum:
+        import json
+        json.dump(summary_data, f_sum, indent=2)
+
+    # Also copy all files to Desktop for instant access
+    try:
+        desktop_dir = os.path.join(os.environ.get('USERPROFILE', ''), 'OneDrive', 'Desktop')
+        if not os.path.exists(desktop_dir):
+            desktop_dir = os.path.join(os.environ.get('USERPROFILE', ''), 'Desktop')
+        if os.path.exists(desktop_dir):
+            import shutil, json
+            shutil.copy2('data/room_scan.ply', os.path.join(desktop_dir, 'room_scan.ply'))
+            shutil.copy2('data/room_scan.csv', os.path.join(desktop_dir, 'room_scan.csv'))
+            shutil.copy2('data/distance_data.csv', os.path.join(desktop_dir, 'distance_data.csv'))
+            with open(os.path.join(desktop_dir, 'room_scan_summary.json'), 'w') as f_dsum:
+                json.dump(summary_data, f_dsum, indent=2)
+    except Exception:
+        pass
+
     print(f"  [OK] Successfully wrote {len(points_3d):,} 3D points to {ply_path}")
+    print(f"  [OK] Saved data/room_scan_summary.json")
+    print(f"  Floor Area: {floor_area_m2:.2f} m² ({floor_area_m2 * 10.7639:.1f} sq ft)")
+    print(f"  Wall Area:  {wall_surface_area_m2:.2f} m² | Enclosed Volume: {room_volume_m3:.2f} m³")
     print(f"  Bounding Box: 0.0m - {room_w:.2f}m (X) | 0.0m - {room_d:.2f}m (Z) | 0.0m - {room_h:.2f}m (Y)")
 
 

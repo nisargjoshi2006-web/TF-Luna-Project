@@ -1,0 +1,22 @@
+{
+  "scan_timestamp": "2026-09-20T00:00:00",
+  "samples_captured": 2400,
+  "duration_seconds": 24.0,
+  "dimensions": {
+    "width_m": 4.2,
+    "depth_m": 3.6,
+    "height_m": 2.7,
+    "width_cm": 420.0,
+    "depth_cm": 360.0,
+    "height_cm": 270.0
+  },
+  "area_metrology": {
+    "floor_area_m2": 15.12,
+    "floor_area_sqft": 162.75,
+    "perimeter_m": 15.6,
+    "wall_surface_area_m2": 42.12,
+    "total_enclosed_area_m2": 72.36,
+    "room_volume_m3": 40.82,
+    "room_volume_cuft": 1441.55
+  }
+}

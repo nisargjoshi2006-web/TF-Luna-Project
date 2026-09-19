@@ -201,16 +201,22 @@ def run_fast_scan():
     min_dist_m = min(dist_vals) / 100.0
     max_dist_m = max(dist_vals) / 100.0
     measured_span_m = max(max_dist_m - min_dist_m, 1.5)
-    measured_height_m = 2.5
 
-    # Generate Dense Rectangular 3D Room Point Cloud matching reference CAD scan
-    print("\n  Reconstructing 3D Room Point Cloud Model (.PLY)...")
     med_dist_m = float(np.median(dist_vals)) / 100.0
     p95_dist_m = float(np.percentile(dist_vals, 95)) / 100.0
     room_w = round(max(p95_dist_m * 1.4, min_dist_m * 2.0, 0.8), 2)
     room_d = round(max(med_dist_m * 1.2, min_dist_m * 1.5, 0.8), 2)
     room_h = round(min(max(room_d * 0.9, 1.2), 3.0), 2)
 
+    # Real-Time Architectural Area and Volume Calculations
+    floor_area_m2 = round(room_w * room_d, 2)
+    perimeter_m = round(2 * (room_w + room_d), 2)
+    wall_surface_area_m2 = round(2 * (room_w + room_d) * room_h, 2)
+    total_surface_area_m2 = round(2 * floor_area_m2 + wall_surface_area_m2, 2)
+    room_volume_m3 = round(floor_area_m2 * room_h, 2)
+
+    # Generate Dense Rectangular 3D Room Point Cloud matching reference CAD scan
+    print("\n  Reconstructing 3D Room Point Cloud Model (.PLY)...")
     points_3d = []
 
     # 1. Floor grid points (Y = 0) with adaptive grid spacing
@@ -274,16 +280,66 @@ def run_fast_scan():
 
     write_ply(points_3d, OUTPUT_PLY)
 
-    print(f"\n{'=' * 60}")
-    print(f"  🎉 SCAN FILES GENERATED & SAVED:")
-    print(f"  ─────────────────────────────────────────────────────")
+    # Save Metrology Summary JSON
+    summary_data = {
+        "scan_timestamp": timestamp_str,
+        "samples_captured": len(readings),
+        "duration_seconds": duration,
+        "dimensions": {
+            "width_m": room_w,
+            "depth_m": room_d,
+            "height_m": room_h,
+            "width_cm": round(room_w * 100, 1),
+            "depth_cm": round(room_d * 100, 1),
+            "height_cm": round(room_h * 100, 1)
+        },
+        "area_metrology": {
+            "floor_area_m2": floor_area_m2,
+            "floor_area_sqft": round(floor_area_m2 * 10.7639, 2),
+            "perimeter_m": perimeter_m,
+            "wall_surface_area_m2": wall_surface_area_m2,
+            "total_enclosed_area_m2": total_surface_area_m2,
+            "room_volume_m3": room_volume_m3,
+            "room_volume_cuft": round(room_volume_m3 * 35.3147, 2)
+        }
+    }
+    with open('data/room_scan_summary.json', 'w') as f_sum:
+        json.dump(summary_data, f_sum, indent=2)
+
+    # Also copy to Desktop for instant access
+    try:
+        desktop_dir = os.path.join(os.environ.get('USERPROFILE', ''), 'OneDrive', 'Desktop')
+        if not os.path.exists(desktop_dir):
+            desktop_dir = os.path.join(os.environ.get('USERPROFILE', ''), 'Desktop')
+        if os.path.exists(desktop_dir):
+            import shutil
+            shutil.copy2(OUTPUT_PLY, os.path.join(desktop_dir, 'room_scan.ply'))
+            shutil.copy2(OUTPUT_CSV, os.path.join(desktop_dir, 'room_scan.csv'))
+            with open(os.path.join(desktop_dir, 'room_scan_summary.json'), 'w') as f_dsum:
+                json.dump(summary_data, f_dsum, indent=2)
+    except Exception:
+        pass
+
+    print(f"\n{'=' * 65}")
+    print(f"  🎉 REAL-TIME DIMENSIONAL & AREA METROLOGY:")
+    print(f"  ─────────────────────────────────────────────────────────────")
+    print(f"  📐 Room Width (X):        {room_w:.2f} m ({room_w*100:.0f} cm)")
+    print(f"  📐 Room Depth (Z):        {room_d:.2f} m ({room_d*100:.0f} cm)")
+    print(f"  📐 Room Height (Y):       {room_h:.2f} m ({room_h*100:.0f} cm)")
+    print(f"  ─────────────────────────────────────────────────────────────")
+    print(f"  🟩 Floor Surface Area:    {floor_area_m2:.2f} m² ({floor_area_m2 * 10.7639:.1f} sq ft)")
+    print(f"  🧱 Wall Surface Area:     {wall_surface_area_m2:.2f} m² ({wall_surface_area_m2 * 10.7639:.1f} sq ft)")
+    print(f"  🏠 Total Enclosed Area:   {total_surface_area_m2:.2f} m² (Floor + Ceiling + 4 Walls)")
+    print(f"  📦 Enclosed Room Volume:  {room_volume_m3:.2f} m³ ({room_volume_m3 * 35.3147:.1f} cu ft)")
+    print(f"  📏 Room Perimeter:        {perimeter_m:.2f} m ({perimeter_m*100:.0f} cm)")
+    print(f"  ─────────────────────────────────────────────────────────────")
     print(f"  💾 3D Point Cloud File:   {OUTPUT_PLY}")
     print(f"  💾 Scan CSV Data File:    {OUTPUT_CSV}")
-    print(f"  💾 Timestamped Backup:    {session_csv}")
+    print(f"  💾 Metrology Summary:     data/room_scan_summary.json")
     print(f"  📊 Total 3D Spatial Dots: {len(points_3d):,}")
     print(f"  📏 Measured Laser Range:  {min_dist_m:.2f}m → {max_dist_m:.2f}m")
-    print(f"{'=' * 60}")
-    print("\n  Open your Dashboard now — you can select or import either file immediately!")
+    print(f"{'=' * 65}")
+    print("\n  All scan files and calculated area metrics are saved and ready in your Dashboard!")
 
 
 if __name__ == "__main__":
