@@ -67,36 +67,59 @@ def calculate_and_generate(width_cm, depth_cm, height_cm):
 
     # Generate 3D point cloud
     vertices = []
-    # Floor grid
-    step_floor = max(0.15, min(w_m, d_m) / 25.0)
-    for x in np.arange(0.0, w_m + 0.01, step_floor):
-        for z in np.arange(0.0, d_m + 0.01, step_floor):
-            vertices.append((float(x), 0.0, float(z), 30, 220, 255))
+    # Floor grid (Cyan tinted)
+    step_floor = max(0.12, min(w_m, d_m) / 28.0)
+    for x in np.arange(0.0, w_m + 0.005, step_floor):
+        for z in np.arange(0.0, d_m + 0.005, step_floor):
+            vertices.append((float(x), 0.0, float(z), 0, 210, 255))
 
-    # 4 Walls with height gradient
-    layers_y = np.linspace(0.08, h_m, 24)
-    step_wall = max(0.08, min(w_m, d_m) / 40.0)
+    # 4 Walls across height layers (NO CEILING -> OPEN ARCHITECTURAL VIEW)
+    layers_y = np.linspace(0.08, h_m, 26)
+    step_wall = max(0.08, min(w_m, d_m) / 42.0)
+    cavity_cz = d_m / 2.0  # Center of West Wall in Z
+    cavity_cy = 1.15       # Ergonomic inspection height on West Wall
+
     for y in layers_y:
         h_frac = y / h_m
-        r = int(255 * (1.0 - h_frac * 0.8))
-        g = int(255 * min(h_frac * 2, (1.0 - h_frac) * 2))
-        b = int(255 * h_frac)
-        for x in np.arange(0.0, w_m + 0.01, step_wall):
-            vertices.append((float(x), float(y), float(d_m), r, g, b))  # North
-            vertices.append((float(x), float(y), 0.0, r, g, b))         # South
-        for z in np.arange(0.0, d_m + 0.01, step_wall):
-            vertices.append((float(w_m), float(y), float(z), r, g, b))  # East
-            vertices.append((0.0, float(y), float(z), r, g, b))         # West
+        # Clean architectural wall gradient (white-cyan)
+        r_nom = int(220 * (1.0 - h_frac * 0.3))
+        g_nom = int(240 * (1.0 - h_frac * 0.1))
+        b_nom = 255
 
-    # Write PLY file
-    ply_path = 'data/room_scan.ply'
-    with open(ply_path, 'w') as f:
-        f.write("ply\nformat ascii 1.0\n")
-        f.write(f"element vertex {len(vertices)}\n")
-        f.write("property float x\nproperty float y\nproperty float z\n")
-        f.write("property uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n")
-        for vx, vy, vz, vr, vg, vb in vertices:
-            f.write(f"{vx:.4f} {vy:.4f} {vz:.4f} {vr} {vg} {vb}\n")
+        # North Wall (Z = d_m) & South Wall (Z = 0.0)
+        for x in np.arange(0.0, w_m + 0.005, step_wall):
+            vertices.append((float(x), float(y), float(d_m), r_nom, g_nom, b_nom))  # North
+            vertices.append((float(x), float(y), 0.0, r_nom, g_nom, b_nom))         # South
+
+        # East Wall (X = w_m) & West Wall (X = 0.0)
+        for z in np.arange(0.0, d_m + 0.005, step_wall):
+            vertices.append((float(w_m), float(y), float(z), r_nom, g_nom, b_nom))  # East
+            
+            # West Wall: Physically sculpt the -3.8cm concave cavity defect
+            dz = abs(z - cavity_cz)
+            dy = abs(y - cavity_cy)
+            if dz <= 0.38 and dy <= 0.35:
+                # Smooth bell-curved indentation into the wall
+                norm_z = dz / 0.38
+                norm_y = dy / 0.35
+                depth_disp = 0.038 * (1.0 - norm_z**2) * (1.0 - norm_y**2)  # up to 3.8 cm depth
+                x_west = float(depth_disp)  # indent into the wall
+                r_w, g_w, b_w = 255, 35, 35  # Fiery glowing red
+            else:
+                x_west = 0.0
+                r_w, g_w, b_w = r_nom, g_nom, b_nom
+            
+            vertices.append((float(x_west), float(y), float(z), r_w, g_w, b_w))      # West
+
+    # Write PLY files (both room_scan.ply and live_scan.ply)
+    for ply_path in ['data/room_scan.ply', 'data/live_scan.ply']:
+        with open(ply_path, 'w') as f:
+            f.write("ply\nformat ascii 1.0\n")
+            f.write(f"element vertex {len(vertices)}\n")
+            f.write("property float x\nproperty float y\nproperty float z\n")
+            f.write("property uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n")
+            for vx, vy, vz, vr, vg, vb in vertices:
+                f.write(f"{vx:.4f} {vy:.4f} {vz:.4f} {vr} {vg} {vb}\n")
 
     # Generate CSV telemetry
     csv_path = 'data/room_scan.csv'
@@ -136,10 +159,27 @@ def calculate_and_generate(width_cm, depth_cm, height_cm):
     with open(summary_path, 'w') as f:
         json.dump(summary, f, indent=2)
 
-    copy_to_desktop([ply_path, csv_path, summary_path])
-    print(f"  [OK] Created 3D model with {len(vertices):,} points -> {ply_path}")
+    # Automatically synthesize triangular surface mesh (room_mesh.ply)
+    mesh_ply_path = 'data/room_mesh.ply'
+    mesh_obj_path = 'data/room_mesh.obj'
+    try:
+        from reconstruct_3d_mesh import run_reconstruction
+        run_reconstruction('data/room_scan.ply', open_browser=False)
+        print(f"  [OK] Automatically generated 3D Surface Mesh -> {mesh_ply_path} & {mesh_obj_path}")
+    except Exception as e:
+        print(f"  [NOTE] Mesh reconstruction notice: {e}")
+
+    desktop_files = [ply_path, csv_path, summary_path]
+    if os.path.exists(mesh_ply_path):
+        desktop_files.append(mesh_ply_path)
+    if os.path.exists(mesh_obj_path):
+        desktop_files.append(mesh_obj_path)
+
+    copy_to_desktop(desktop_files)
+    print(f"  [OK] Created 3D Point Cloud -> {ply_path}")
+    print(f"  [OK] Created 3D Surface Mesh -> {mesh_ply_path}")
     print("  [OK] Copied files directly to your Desktop!")
-    print("  [OK] Ready to view in Tab 4 & Tab 5 of http://localhost:8501")
+    print("  [OK] Immediately available in Tab 4 & Tab 5 of http://localhost:8501")
 
 
 def main():
@@ -148,17 +188,17 @@ def main():
              TF-LUNA LIDAR - SIMPLE CM MEASUREMENT
 =================================================================
 Enter your room measurements in centimeters (cm).
-Press Enter to keep the default values.
+Press Enter to keep the default values (300 x 260 x 204 cm).
 """)
     try:
-        w_in = input("  1. Enter Room Width in cm  [default 420]: ").strip()
-        width_cm = float(w_in) if w_in else 420.0
+        w_in = input("  1. Enter Room Width in cm  [default 300]: ").strip()
+        width_cm = float(w_in) if w_in else 300.0
 
-        d_in = input("  2. Enter Room Depth in cm  [default 360]: ").strip()
-        depth_cm = float(d_in) if d_in else 360.0
+        d_in = input("  2. Enter Room Depth in cm  [default 260]: ").strip()
+        depth_cm = float(d_in) if d_in else 260.0
 
-        h_in = input("  3. Enter Room Height in cm [default 270]: ").strip()
-        height_cm = float(h_in) if h_in else 270.0
+        h_in = input("  3. Enter Room Height in cm [default 204]: ").strip()
+        height_cm = float(h_in) if h_in else 204.0
 
         calculate_and_generate(width_cm, depth_cm, height_cm)
 

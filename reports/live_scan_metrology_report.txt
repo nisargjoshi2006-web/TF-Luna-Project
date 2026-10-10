@@ -1,0 +1,17 @@
+=================================================================
+   TF-LUNA LIDAR REAL LIVE 4-WALL SCAN METROLOGY REPORT
+=================================================================
+Timestamp: 2026-10-10 09:02:15
+
+Measured Width  (X) : 2.63 m (263 cm)
+Measured Depth  (Z) : 3.03 m (303 cm)
+Measured Height (Y) : 2.07 m (207 cm)
+
+Floor Surface Area  : 7.97 m2
+Wall Surface Area   : 23.43 m2
+Enclosed Volume     : 16.50 m3
+Room Perimeter      : 11.32 m
+
+Total 3D Points     : 2,930
+Triangular Faces    : 5,552
+=================================================================

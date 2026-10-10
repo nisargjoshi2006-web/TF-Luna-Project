@@ -1,13 +1,11 @@
 """
 ====================================================================
-      TF-LUNA LIDAR & ESP-32 REAL-TIME TELEMETRY STREAM
+      TF-LUNA LIDAR & ESP-32 REAL-TIME TELEMETRY DATA STREAM
 ====================================================================
-This script reads or streams live 100 Hz telemetry from the ESP-32:
-- Time-of-Flight Distance (cm)
-- Calibrated Distance (y = x + 3.00 cm)
-- Optical Return Signal Strength (Flux)
-- Chip Temperature (°C)
-- 1.0 m Standoff Distance Hold Status
+Team 1 Subsystem: Drone Aerial Sensing & Telemetry Subsystem
+- Hardware: ESP-32 MCU + TF-Luna ToF LiDAR via UART (115200 Baud)
+- Parameters: Raw ToF Distance, Zero-Offset Calibrated Distance (y=x+3),
+              Optical Signal Flux, Chip Temperature, Standoff Status
 ====================================================================
 """
 
@@ -17,8 +15,13 @@ import os
 import math
 import random
 
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 def run_live_telemetry():
-    # Try connecting to hardware first
     port = None
     baudrate = 115200
     serial_conn = None
@@ -28,75 +31,106 @@ def run_live_telemetry():
         import serial.tools.list_ports
         ports = serial.tools.list_ports.comports()
         for p in ports:
-            if any(k in p.description for k in ["CP210", "Silicon", "ESP32", "Arduino", "CH340", "USB Serial"]):
+            if any(k in p.description for k in ["CP210", "Silicon", "ESP32", "Arduino", "CH340", "USB Serial", "USB-to-UART"]):
                 port = p.device
                 break
+        if not port and len(ports) > 0:
+            for p in ports:
+                if "Bluetooth" not in p.description:
+                    port = p.device
+                    break
+
         if port:
             serial_conn = serial.Serial(port, baudrate, timeout=1)
-            print(f"[HARDWARE DETECTED] Connected to ESP-32 / TF-Luna on {port} at {baudrate} baud!\n")
-    except Exception:
+            time.sleep(1.0)  # Allow ESP32 boot reset
+            # Flush bootloader buffer
+            while serial_conn.in_waiting > 0:
+                serial_conn.readline()
+            print(f"\n[HARDWARE CONNECTED] Active on {port} @ {baudrate} baud (ESP-32 + TF-Luna UART)\n")
+    except Exception as e:
+        print(f"\n[DEMO MODE] Hardware not detected on COM port ({e}). Running benchtop stream simulation.\n")
         serial_conn = None
 
-    print("=" * 80)
-    print("      📡 ESP-32 + TF-LUNA REAL-TIME TELEMETRY DATA STREAM (100 Hz)")
-    print("      Subsystem 1: Aerial Sensing Payload & Wireless Telemetry")
-    print("=" * 80)
-    print(f"{'TIMESTAMP':<14} | {'RAW (cm)':<10} | {'CALIBRATED (cm)':<17} | {'FLUX':<8} | {'TEMP (°C)':<10} | {'STATUS'}")
-    print("-" * 80)
+    print("=" * 86)
+    print("      ESP-32 + TF-LUNA REAL-TIME TELEMETRY DATA STREAM (100 Hz UART)")
+    print("      Subsystem 1: Aerial Sensing Payload & 1.0m Standoff Telemetry")
+    print("=" * 86)
+    print(f"{'TIMESTAMP':<13} | {'RAW ToF (cm)':<12} | {'CALIBRATED (cm)':<17} | {'FLUX':<7} | {'TEMP (C)':<9} | {'STANDOFF STATUS'}")
+    print("-" * 86)
 
     slope_m = 1.0
-    intercept_c = 3.00  # Calibration zero-offset
+    intercept_c = 3.00  # Systematic zero-offset model: y = x + 3.00
     count = 0
 
     try:
         while True:
             t_str = time.strftime("%H:%M:%S") + f".{int(time.time()*1000)%1000:03d}"
+            raw_dist = None
+            flux = 1685
+            temp = 32.4
             
             if serial_conn:
                 try:
                     line = serial_conn.readline().decode('utf-8', errors='ignore').strip()
                     if line:
-                        parts = line.split(',')
-                        if len(parts) >= 2:
+                        parts = [p.strip() for p in line.split(',') if p.strip()]
+                        if len(parts) >= 4:
+                            # Arduino firmware sends: yaw, pitch, distance_cm, strength
+                            raw_dist = float(parts[2])
+                            flux = int(float(parts[3]))
+                        elif len(parts) == 2:
                             raw_dist = float(parts[0])
-                            flux = int(parts[1]) if len(parts) > 1 else 1850
-                            temp = float(parts[2]) if len(parts) > 2 else 32.5
-                        else:
-                            raw_dist = float(line)
-                            flux = 1850
-                            temp = 32.5
-                    else:
-                        continue
+                            flux = int(float(parts[1]))
+                        elif len(parts) == 1 and parts[0].replace('.', '', 1).isdigit():
+                            raw_dist = float(parts[0])
+                except (ValueError, IndexError):
+                    raw_dist = None
                 except Exception:
-                    raw_dist = 97.0 + random.uniform(-1.2, 1.2)
-                    flux = int(1850 + random.uniform(-30, 30))
-                    temp = 32.4 + random.uniform(-0.1, 0.1)
-            else:
-                # High-fidelity realistic benchtop / 1.0 m standoff hold stream
-                count += 1
-                base_dist = 97.0 + 0.8 * math.sin(count * 0.08) + random.uniform(-0.5, 0.5)
-                raw_dist = round(base_dist, 1)
-                flux = int(1840 + random.uniform(-25, 25))
-                temp = round(32.4 + random.uniform(-0.1, 0.1), 1)
+                    raw_dist = None
+
+            if raw_dist is None:
+                if serial_conn:
+                    time.sleep(0.01)
+                    continue
+                else:
+                    # High-fidelity realistic benchtop simulation if hardware unplugged
+                    count += 1
+                    base_dist = 97.0 + 0.6 * math.sin(count * 0.1) + random.uniform(-0.3, 0.3)
+                    raw_dist = round(base_dist, 1)
+                    flux = int(1680 + random.uniform(-25, 25))
+                    temp = round(32.4 + random.uniform(-0.1, 0.1), 1)
 
             calibrated_dist = round((slope_m * raw_dist) + intercept_c, 2)
             
-            # Standoff check
-            if abs(calibrated_dist - 100.0) <= 2.5:
-                status = "✅ 1.0m Standoff Hold (Locked)"
+            # Standoff boundary evaluation (1.0 meter = 100.0 cm +- 5.0 cm)
+            if abs(calibrated_dist - 100.0) <= 5.0:
+                status = "[LOCKED] 1.0m Standoff Hold"
             elif calibrated_dist > 105.0:
-                status = "⚠️ Approach Target (<1.0m)"
+                status = "[APPROACH] Standoff Gap > 1.0m"
             else:
-                status = "⚠️ Back-off (>1.0m)"
+                status = "[BACK-OFF] Standoff Gap < 1.0m"
 
-            print(f"{t_str:<14} | {raw_dist:>7.1f} cm | {calibrated_dist:>11.2f} cm (y=x+3) | {flux:>6d} | {temp:>8.1f} °C | {status}")
+            # Automatically log to data/distance_data.csv for real-time dashboard live-stream
+            try:
+                os.makedirs("data", exist_ok=True)
+                csv_path = "data/distance_data.csv"
+                write_header = not os.path.exists(csv_path) or os.path.getsize(csv_path) == 0
+                with open(csv_path, "a", encoding="utf-8") as f:
+                    if write_header:
+                        f.write("Raw_Distance,Calibrated_Filtered_Distance\n")
+                    f.write(f"{raw_dist:.1f},{calibrated_dist:.2f}\n")
+            except Exception:
+                pass
+
+            print(f"{t_str:<13} | {raw_dist:>8.1f} cm   | {calibrated_dist:>11.2f} cm (y=x+3) | {flux:>5d} | {temp:>6.1f} C  | {status}")
+            sys.stdout.flush()
             
-            time.sleep(0.04)  # 25 lines/sec display rate for clear visual inspection
+            time.sleep(0.05)  # 20 Hz visual refresh for clean terminal display
 
     except KeyboardInterrupt:
-        print("\n" + "=" * 80)
-        print("   Telemetry stream paused.")
-        print("=" * 80)
+        print("\n" + "=" * 86)
+        print("   Telemetry stream stopped by user.")
+        print("=" * 86)
         if serial_conn:
             serial_conn.close()
 

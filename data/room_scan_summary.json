@@ -1,17 +1,17 @@
 {
   "dimensions_cm": {
-    "width_x": 420,
-    "depth_z": 360,
-    "height_y": 270
+    "width_x": 300.0,
+    "depth_z": 260.0,
+    "height_y": 204.0
   },
   "dimensions_m": {
-    "width_x": 4.2,
-    "depth_z": 3.6,
-    "height_y": 2.7
+    "width_x": 3.0,
+    "depth_z": 2.6,
+    "height_y": 2.04
   },
-  "floor_area_m2": 15.12,
-  "wall_area_m2": 42.12,
-  "volume_m3": 40.82,
-  "perimeter_m": 15.6,
-  "total_3d_points": 4949
+  "floor_area_m2": 7.8,
+  "wall_area_m2": 22.85,
+  "volume_m3": 15.91,
+  "perimeter_m": 11.2,
+  "total_3d_points": 4264
 }
