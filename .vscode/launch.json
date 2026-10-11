@@ -2,6 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "▶ 🌊 Continuous Multi-Point Scanner (Live Wall & Room Sweep)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/continuous_multi_point_scanner.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "▶ 🏢 3D Room Scanner (Almari & Gate Features)",
             "type": "debugpy",
             "request": "launch",
