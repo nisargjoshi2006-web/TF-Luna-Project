@@ -2,6 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "▶ 🏢 3D Room Scanner (Almari & Gate Features)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/feature_aware_room_scanner.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "▶ 📏 Live Tape Measure Accuracy Check",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/live_tape_measure_check.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "▶ 1-Click Launch Dashboard (F5)",
             "type": "debugpy",
             "request": "launch",
