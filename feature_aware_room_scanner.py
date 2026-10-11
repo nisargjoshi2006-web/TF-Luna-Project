@@ -377,65 +377,108 @@ def main():
     print(f"\n  [ROOM BASELINE]: {room_w:.2f}m Width × {room_d:.2f}m Depth × {room_h:.2f}m Height")
 
     # 2. Features Capture (Almari & Gate)
+    # 2. Features Capture: Dynamic loop for ANY Object (Protrusion) and ANY Opening (Recess)
     features = []
-    print("\n  --- STEP 2: SCANNING INTERIOR OBJECTS & OPENINGS ---")
+    print("\n  --- STEP 2: SCANNING ANY INTERIOR OBJECTS (FURNITURE) & OPENINGS ---")
+    print("  You can add ANY object (Almari, Bed, Table, Sofa, Pillar, Fridge) or Opening (Gate, Door, Window)!")
 
-    # Feature 1: Almari (Wardrobe)
-    has_almari = input("\n  👉 Does your room have an ALMARI / WARDROBE protruding from a wall? (y/n) [default: y]: ").strip().lower()
-    if has_almari != 'n':
-        print("\n  [ALMARI DETECTION]:")
-        d_almari = capture_distance(conn, "Almari Surface", "Aim laser directly at the FRONT FACE of the Almari.", round(d_north - 0.65, 2))
+    # A. PROTRUDING OBJECTS (FURNITURE, ALMARI, BED, TABLE, PILLAR)
+    while True:
+        add_obj = input("\n  👉 Add an Object/Furniture protruding into room? (Bed/Table/Almari/Sofa/Pillar/Fridge) [y/n, default: y]: ").strip().lower()
+        if add_obj == 'n':
+            break
         
-        # Calculate bulge (protrusion inward):
-        bulge_cm = round((d_north - d_almari) * 100.0, 1)
+        obj_name = input("     Enter object name [e.g. Almari, Bed, Study Table, Pillar, Sofa] (default: Almari): ").strip()
+        if not obj_name:
+            obj_name = "Almari / Wardrobe"
+        
+        wall_choice = input("     Which wall is it on? [north / east / south / west, default: north]: ").strip().lower()
+        if wall_choice not in ["north", "east", "south", "west"]:
+            wall_choice = "north"
+        
+        wall_baseline = d_north if wall_choice == "north" else (d_east if wall_choice == "east" else (d_south if wall_choice == "south" else d_west))
+        if wall_baseline < 0.35:
+            wall_baseline = room_d if wall_choice in ["north", "south"] else room_w
+
+        d_obj = capture_distance(conn, f"{obj_name} Front Surface", f"Aim laser directly at the front of {obj_name}.", round(wall_baseline - 0.65, 2))
+        
+        bulge_cm = round((wall_baseline - d_obj) * 100.0, 1)
         if bulge_cm <= 0:
-            bulge_cm = 65.0  # Default 65cm standard wardrobe depth
-            d_almari = d_north - 0.65
+            bulge_cm = 60.0  # Default 60cm standard furniture depth
+            d_obj = wall_baseline - 0.60
 
-        print(f"  🎯 Almari Detected! Normal Wall = {d_north:.2f}m | Almari Face = {d_almari:.2f}m")
-        print(f"  👉 Bulges INWARD into room by: {bulge_cm:.1f} cm ({bulge_cm/100:.2f} m)!")
+        print(f"     🎯 {obj_name} Detected! Wall = {wall_baseline:.2f}m | {obj_name} = {d_obj:.2f}m")
+        print(f"     👉 Bulges INWARD into room by: {bulge_cm:.1f} cm ({bulge_cm/100:.2f} m)!")
 
-        w_almari = float(input(f"  Enter Almari width along the wall (meters) [default: 1.20m]: ") or "1.20")
-        h_almari = float(input(f"  Enter Almari height (meters) [default: {min(2.10, room_h-0.2):.2f}m]: ") or str(min(2.10, room_h-0.2)))
+        w_obj = float(input(f"     Enter {obj_name} width along wall (meters) [default: 1.20m]: ") or "1.20")
+        h_obj = float(input(f"     Enter {obj_name} height (meters) [default: {min(2.10, room_h-0.2):.2f}m]: ") or str(min(2.10, room_h-0.2)))
 
+        max_span = room_w if wall_choice in ["north", "south"] else room_d
         features.append({
             "type": "almari",
-            "name": "Almari / Wardrobe",
-            "wall": "north",
-            "x_start": round(room_w * 0.25, 2),
-            "x_end": round(room_w * 0.25 + w_almari, 2),
+            "name": obj_name,
+            "wall": wall_choice,
+            "x_start": round(max_span * 0.25, 2),
+            "x_end": round(max_span * 0.25 + w_obj, 2),
+            "z_start": round(max_span * 0.25, 2),
+            "z_end": round(max_span * 0.25 + w_obj, 2),
             "depth_offset": round(bulge_cm / 100.0, 2),
-            "height": h_almari,
+            "height": h_obj,
             "color": (255, 140, 0)  # Amber / Orange
         })
-
-    # Feature 2: Gate / Doorway (Recess)
-    has_gate = input("\n  👉 Does your room have an OPEN GATE / DOORWAY / WALL NICHE? (y/n) [default: y]: ").strip().lower()
-    if has_gate != 'n':
-        print("\n  [GATE / DOORWAY DETECTION]:")
-        d_gate = capture_distance(conn, "Gate / Doorway Opening", "Aim laser through the OPEN GATE / DOORWAY.", round(d_east + 0.60, 2))
         
-        recess_cm = round((d_gate - d_east) * 100.0, 1)
+        more = input("     Add another protruding object? (y/n) [default: n]: ").strip().lower()
+        if more != 'y':
+            break
+
+    # B. RECESSED OPENINGS (GATE, DOOR, WINDOW NICHE, BALCONY)
+    while True:
+        add_gate = input("\n  👉 Add an Opening/Recess? (Gate/Doorway/Window Niche/Balcony) [y/n, default: y]: ").strip().lower()
+        if add_gate == 'n':
+            break
+
+        gate_name = input("     Enter opening name [e.g. Main Gate, Door, Window Niche, Balcony] (default: Gate): ").strip()
+        if not gate_name:
+            gate_name = "Gate / Doorway"
+
+        wall_choice = input("     Which wall is it on? [north / east / south / west, default: east]: ").strip().lower()
+        if wall_choice not in ["north", "east", "south", "west"]:
+            wall_choice = "east"
+
+        wall_baseline = d_north if wall_choice == "north" else (d_east if wall_choice == "east" else (d_south if wall_choice == "south" else d_west))
+        if wall_baseline < 0.35:
+            wall_baseline = room_d if wall_choice in ["north", "south"] else room_w
+
+        d_gate = capture_distance(conn, f"{gate_name} Opening", f"Aim laser through/into {gate_name}.", round(wall_baseline + 0.60, 2))
+
+        recess_cm = round((d_gate - wall_baseline) * 100.0, 1)
         if recess_cm <= 0:
-            recess_cm = 55.0  # Default doorway corridor setback
-            d_gate = d_east + 0.55
+            recess_cm = 55.0  # Default 55cm corridor setback
+            d_gate = wall_baseline + 0.55
 
-        print(f"  🎯 Gate Detected! Normal Wall = {d_east:.2f}m | Gate Opening = {d_gate:.2f}m")
-        print(f"  👉 Recesses OUTWARD past the wall by: {recess_cm:.1f} cm ({recess_cm/100:.2f} m)!")
+        print(f"     🎯 {gate_name} Detected! Wall = {wall_baseline:.2f}m | Opening = {d_gate:.2f}m")
+        print(f"     👉 Recesses OUTWARD past wall by: {recess_cm:.1f} cm ({recess_cm/100:.2f} m)!")
 
-        w_gate = float(input(f"  Enter Gate / Door width (meters) [default: 0.90m]: ") or "0.90")
-        h_gate = float(input(f"  Enter Gate height (meters) [default: 2.10m]: ") or "2.10")
+        w_gate = float(input(f"     Enter {gate_name} width (meters) [default: 0.90m]: ") or "0.90")
+        h_gate = float(input(f"     Enter {gate_name} height (meters) [default: 2.10m]: ") or "2.10")
 
+        max_span = room_w if wall_choice in ["north", "south"] else room_d
         features.append({
             "type": "gate",
-            "name": "Open Gate / Doorway",
-            "wall": "east",
-            "z_start": round(room_d * 0.55, 2),
-            "z_end": round(room_d * 0.55 + w_gate, 2),
+            "name": gate_name,
+            "wall": wall_choice,
+            "x_start": round(max_span * 0.55, 2),
+            "x_end": round(max_span * 0.55 + w_gate, 2),
+            "z_start": round(max_span * 0.55, 2),
+            "z_end": round(max_span * 0.55 + w_gate, 2),
             "depth_offset": -round(recess_cm / 100.0, 2),  # Negative offset = pushes outward
             "height": h_gate,
             "color": (0, 230, 118)  # Emerald Green
         })
+
+        more = input("     Add another opening/recess? (y/n) [default: n]: ").strip().lower()
+        if more != 'y':
+            break
 
     if conn:
         conn.close()
