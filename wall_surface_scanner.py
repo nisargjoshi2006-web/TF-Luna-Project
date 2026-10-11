@@ -38,7 +38,22 @@ os.makedirs("data", exist_ok=True)
 os.makedirs("reports", exist_ok=True)
 
 BAUDRATE = 115200
-CALIBRATION_OFFSET_CM = 3.00
+
+def load_calibration_params():
+    calib_json = 'data/calibration.json'
+    slope = 1.0228
+    offset = 3.20
+    if os.path.exists(calib_json):
+        try:
+            with open(calib_json, 'r', encoding='utf-8') as f:
+                cfg = json.load(f)
+                slope = float(cfg.get('slope_m', slope))
+                offset = float(cfg.get('offset_error_cm', cfg.get('intercept_c', offset)))
+        except Exception:
+            pass
+    return slope, offset
+
+CALIBRATION_SLOPE, CALIBRATION_OFFSET_CM = load_calibration_params()
 OUTPUT_PLY = "data/wall_scan_surface.ply"
 OUTPUT_LIVE_PLY = "data/live_scan.ply"
 OUTPUT_CSV = "data/wall_scan_surface.csv"
@@ -230,8 +245,8 @@ def run_wall_scanner(scan_duration_sec=14, sweep_layers=5):
             cavity_disp = 3.8 * math.cos(math.radians((current_yaw_deg + 3.0) * (180.0 / 18.0)))
             raw_dist += max(0.0, cavity_disp)
 
-        # Apply Zero-Offset Calibration: y = 1.0*x + 3.0cm
-        calibrated_dist_cm = raw_dist + CALIBRATION_OFFSET_CM
+        # Apply 2-Point Precision Calibration Model: y = m*x + c
+        calibrated_dist_cm = (CALIBRATION_SLOPE * raw_dist) + CALIBRATION_OFFSET_CM
         dist_m = calibrated_dist_cm / 100.0
 
         # Spherical to Cartesian Conversion (X = horizontal span, Y = height, Z = normal depth into wall)

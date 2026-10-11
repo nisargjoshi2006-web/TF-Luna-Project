@@ -58,8 +58,19 @@ def run_live_telemetry():
     print(f"{'TIMESTAMP':<13} | {'RAW ToF (cm)':<12} | {'CALIBRATED (cm)':<17} | {'FLUX':<7} | {'TEMP (C)':<9} | {'STANDOFF STATUS'}")
     print("-" * 86)
 
-    slope_m = 1.0
-    intercept_c = 3.00  # Systematic zero-offset model: y = x + 3.00
+    # Dynamically load active calibration parameters from data/calibration.json
+    slope_m = 1.0228
+    intercept_c = 3.20
+    calib_json = "data/calibration.json"
+    if os.path.exists(calib_json):
+        try:
+            import json
+            with open(calib_json, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+                slope_m = float(cfg.get("slope_m", slope_m))
+                intercept_c = float(cfg.get("offset_error_cm", cfg.get("intercept_c", intercept_c)))
+        except Exception:
+            pass
     count = 0
 
     try:

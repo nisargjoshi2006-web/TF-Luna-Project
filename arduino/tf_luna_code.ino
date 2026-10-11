@@ -122,12 +122,21 @@ float getDecimalDistance(int raw_cm) {
   return (float)sum / (float)count;
 }
 
+// 2-Point Linear Calibration Model (Derived from Physical Measuring Tape Benchmarks)
+// y = 1.0228 * x + 3.20 cm (0.00 cm error at 39.0 cm and 61.4 cm benchmarks)
+const float CALIB_SLOPE = 1.0228;
+const float CALIB_OFFSET_CM = 3.20;
+
 void loop() {
   if (getTFLunaData(distance, strength)) {
-    float dist_decimal = getDecimalDistance(distance);
-    // Stream live CSV telemetry with 2 decimal places (e.g., 35.38 cm)
+    float raw_decimal = getDecimalDistance(distance);
+    
+    // Apply calibration model: y = m*x + c
+    float cal_distance = (CALIB_SLOPE * raw_decimal) + CALIB_OFFSET_CM;
+
+    // Stream live calibrated CSV telemetry with 2 decimal places (e.g. 61.40 cm)
     Serial.print(F("0,0,"));
-    Serial.print(dist_decimal, 2);
+    Serial.print(cal_distance, 2);
     Serial.print(F(","));
     Serial.println(strength);
     
