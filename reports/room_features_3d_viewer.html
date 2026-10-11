@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>TF-Luna 3D Room Twin - Feature & Object Inspector</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #0B0E14; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        #header {
+            position: absolute; top: 16px; left: 16px; z-index: 100;
+            background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 12px; padding: 14px 20px; color: #F8FAFC; backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        h2 { margin: 0 0 6px 0; font-size: 18px; color: #00E5FF; display: flex; align-items: center; gap: 8px; }
+        .badge { background: #0284C7; font-size: 11px; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+        .stat { font-size: 13px; color: #94A3B8; margin: 3px 0; }
+        .stat span { color: #F8FAFC; font-weight: 600; }
+        #legend {
+            position: absolute; bottom: 20px; left: 16px; z-index: 100;
+            background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 12px 16px; color: #CBD5E1; font-size: 12px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+        .color-box { width: 14px; height: 14px; border-radius: 3px; }
+        #hud {
+            position: absolute; top: 16px; right: 16px; z-index: 100;
+            background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 12px 16px; color: #94A3B8; font-size: 12px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
+</head>
+<body>
+    <div id="header">
+        <h2><span>🏢</span> TF-Luna 3D Digital Twin <span class="badge">Feature-Aware</span></h2>
+        <div class="stat">Room Dimensions: <span>3.00m W × 2.60m D × 2.70m H</span></div>
+        <div class="stat">Floor Area: <span>7.80 m² (84.0 sq ft)</span></div>
+        <div class="stat">Features Detected: <span>2 architectural elements</span></div>
+    </div>
+
+    <div id="legend">
+        <b>3D Structural Classification:</b>
+        <div class="legend-item"><div class="color-box" style="background:#00B4D8;"></div> Normal Flat Walls</div>
+        <div class="legend-item"><div class="color-box" style="background:#FF8C00;"></div> <b>Almari / Wardrobe (Bulges Inward)</b></div>
+        <div class="legend-item"><div class="color-box" style="background:#00E676;"></div> <b>Gate / Open Doorway (Recessed)</b></div>
+        <div class="legend-item"><div class="color-box" style="background:#1E293B;"></div> Floor Plane</div>
+    </div>
+
+    <div id="hud">
+        🖱️ <b>Rotate:</b> Left-Click + Drag<br>
+        🔍 <b>Zoom:</b> Mouse Wheel<br>
+        🖐️ <b>Pan:</b> Right-Click + Drag
+    </div>
+
+    <script>
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0B0E14);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(3.30, 4.05, 3.90);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(1.50, 1.35, 1.30);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Ambient & Directional Lights
+        const amb = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(amb);
+        const dir = new THREE.DirectionalLight(0x00E5FF, 0.6);
+        dir.position.set(10, 20, 10);
+        scene.add(dir);
+
+        // Grid on Ground
+        const grid = new THREE.GridHelper(Math.max(3.0, 2.6) * 2, 20, 0x00E5FF, 0x1E293B);
+        grid.position.set(1.50, 0, 1.30);
+        scene.add(grid);
+
+        // Load the PLY file
+        const loader = new THREE.PLYLoader();
+        loader.load('room_scan.ply', function (geometry) {
+            geometry.computeVertexNormals();
+            const material = new THREE.PointsMaterial({ size: 0.045, vertexColors: true });
+            const pcloud = new THREE.Points(geometry, material);
+            scene.add(pcloud);
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
