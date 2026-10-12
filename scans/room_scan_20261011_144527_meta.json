@@ -1,0 +1,34 @@
+{
+  "D_N": 2.397,
+  "D_E": 2.402,
+  "D_S": 2.4,
+  "D_W": 2.401,
+  "width_x": 4.803,
+  "length_z": 4.797,
+  "objects": [
+    {
+      "name": "Almari",
+      "type": "bulge",
+      "label": "Almari: 65 cm Bahar (Inward Bulge)",
+      "dist_cm": 65,
+      "x": -1.553,
+      "y": 2.65,
+      "z": 1.75,
+      "target_y": 1.9,
+      "color": "#FF8C00",
+      "border": "#FFA726"
+    },
+    {
+      "name": "Gate",
+      "type": "recess",
+      "label": "Gate: 60 cm Andar (Outward Recess)",
+      "dist_cm": 60,
+      "x": 2.999,
+      "y": 2.65,
+      "z": -0.425,
+      "target_y": 2.15,
+      "color": "#00E676",
+      "border": "#69F0AE"
+    }
+  ]
+}

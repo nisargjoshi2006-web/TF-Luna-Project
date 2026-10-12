@@ -1,17 +1,20 @@
 """
 ========================================================================================
-     TF-LUNA CONTINUOUS REAL-TIME MULTI-POINT SURFACE & ROOM SCANNER
+   TF-LUNA 4-WALL SEQUENTIAL CONTINUOUS ROOM SCANNER (1:1 METRIC 3D DIGITAL TWIN)
 ========================================================================================
-Real-Time Continuous Sampling (No single-point lock!):
-- Mode 1: Continuous Wall Scan (Left-to-Right sweep across a single wall with furniture/gate)
-- Mode 2: Continuous 360° Panoramic Room Sweep (Full 360° circular room contour)
-
-Physical 1:1 Metric Depth Mapping:
-- Every laser pulse is converted to true physical (X, Y, Z) coordinates in meters/cm.
-- Baseline Wall Plane is fitted automatically.
-- BULGES / PROTRUSIONS (Almari, Tables, Boxes): Points sit physically closer by exact cm -> Colored 🟧 ORANGE/RED.
-- RECESSES / OPENINGS (Gates, Doorways, Niches): Points sit physically deeper by exact cm -> Colored 🟩 EMERALD GREEN.
-- NOMINAL FLAT WALL: Points sit directly on baseline plane -> Colored 🟦 CYAN/BLUE.
+Features:
+1. Sequential 4-Wall Continuous Sweep:
+   - Wall 1 (North / Front Wall) -> Sweep Left-to-Right -> PAUSE (Wait for user)
+   - Wall 2 (East / Right Wall)  -> Sweep Left-to-Right -> PAUSE (Wait for user)
+   - Wall 3 (South / Back Wall)  -> Sweep Left-to-Right -> PAUSE (Wait for user)
+   - Wall 4 (West / Left Wall)   -> Sweep Left-to-Right -> Finish & Assemble!
+2. Continuous laser sampling: captures 300-500 points per wall (1,200+ total).
+3. 1:1 Metric Depth Displacements:
+   - Baseline plane calculated per wall.
+   - 🟧 ORANGE / AMBER : Inward Protrusion (Almari, Bed, Table, Box) - bulges into room by exact cm.
+   - 🟩 EMERALD GREEN  : Outward Recess (Gate, Open Door, Niche) - indents outward by exact cm.
+   - 🟦 CYAN / BLUE    : Nominal Flat Wall baseline.
+4. Clean 3D WebGL Viewer (Labels commented out as requested).
 ========================================================================================
 """
 
@@ -20,6 +23,7 @@ import os
 import time
 import math
 import json
+import threading
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -57,6 +61,15 @@ def load_calibration():
 CALIBRATION_SLOPE, CALIBRATION_OFFSET_CM = load_calibration()
 
 
+def rolling_median(arr, window=5):
+    """Filters single-sample sensor flutter and hand jitter."""
+    if len(arr) < window:
+        return np.array(arr)
+    pad = window // 2
+    padded = np.pad(arr, pad, mode='edge')
+    return np.array([np.median(padded[i:i+window]) for i in range(len(arr))])
+
+
 def find_sensor_port():
     ports = serial.tools.list_ports.comports()
     for p in ports:
@@ -76,6 +89,16 @@ def read_sensor_sample(ser):
             ser.reset_input_buffer()
         line = ser.readline().decode('utf-8', errors='ignore').strip()
         if not line:
+            return None, None
+        if "MOTOR" in line or "Angle" in line or "Pulse" in line:
+            if not getattr(read_sensor_sample, '_motor_warned', False):
+                print("\n\n" + "!" * 80)
+                print("  ❌ [WRONG FIRMWARE RUNNING ON ESP-32]")
+                print("     ESP-32 par abhi 'motor_test.ino' (Servo Motor Test) chal raha hai!")
+                print("     Laser scanning ke liye 'arduino/tf_luna_code.ino' upload hona zaroori hai.")
+                print("     👉 Arduino IDE kholein -> 'arduino/tf_luna_code/tf_luna_code.ino' UPLOAD karein!")
+                print("!" * 80 + "\n")
+                read_sensor_sample._motor_warned = True
             return None, None
         tokens = [t for t in line.replace(',', ' ').split() if t.replace('.', '', 1).isdigit()]
         if len(tokens) >= 4:
@@ -99,36 +122,51 @@ def save_ply(filename, points_with_colors):
     print(f"\n  💾 Exported 3D Point Cloud: '{filename}' ({len(points_with_colors):,} vertices)")
 
 
-def generate_web_viewer(ply_path, title_text, num_pts, max_bulge_cm, max_recess_cm):
+def generate_clean_web_viewer(ply_path, meta=None):
+    """Generates self-contained 3D viewer with rectangular room dimensions, wall labels and object metrics."""
+    with open(ply_path, "r", encoding="utf-8") as f:
+        ply_data_str = f.read()
+
+    json_ply = json.dumps(ply_data_str)
+    if meta is None:
+        meta = {
+            'D_N': 2.4, 'D_E': 2.4, 'D_S': 2.4, 'D_W': 2.4,
+            'width_x': 4.8, 'length_z': 4.8, 'objects': []
+        }
+    json_meta = json.dumps(meta)
+
     html_code = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{title_text}</title>
+    <title>3D Room Scan - Rectangular Digital Twin</title>
     <style>
-        body {{ margin: 0; padding: 0; overflow: hidden; background: #0B0E14; font-family: 'Segoe UI', Tahoma, sans-serif; }}
+        body {{
+            margin: 0; padding: 0; overflow: hidden; background: #07090E;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }}
         #hud {{
             position: absolute; top: 16px; left: 16px; z-index: 100;
-            background: rgba(15, 23, 42, 0.90); border: 1px solid rgba(0, 229, 255, 0.3);
-            border-radius: 12px; padding: 14px 20px; color: #F8FAFC; backdrop-filter: blur(8px);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 10px; padding: 10px 16px; color: #E2E8F0; font-size: 13px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5); backdrop-filter: blur(8px);
         }}
-        h2 {{ margin: 0 0 6px 0; font-size: 18px; color: #00E5FF; display: flex; align-items: center; gap: 8px; }}
-        .badge {{ background: #0284C7; font-size: 11px; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }}
-        .stat {{ font-size: 13px; color: #94A3B8; margin: 3px 0; }}
-        .stat span {{ color: #F8FAFC; font-weight: 600; }}
+        .toggle-btn {{
+            background: #00E5FF; color: #07090E; font-weight: bold;
+            border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;
+            transition: all 0.2s ease; font-size: 12px;
+        }}
+        .toggle-btn:hover {{ background: #38BDF8; }}
+        .toggle-btn.off {{ background: #334155; color: #94A3B8; }}
         #legend {{
             position: absolute; bottom: 20px; left: 16px; z-index: 100;
-            background: rgba(15, 23, 42, 0.90); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px; padding: 12px 18px; color: #CBD5E1; font-size: 12px;
+            background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #94A3B8;
+            display: flex; gap: 16px; backdrop-filter: blur(8px);
         }}
-        .legend-item {{ display: flex; align-items: center; gap: 8px; margin: 5px 0; }}
-        .color-box {{ width: 14px; height: 14px; border-radius: 3px; }}
-        #controls-info {{
-            position: absolute; top: 16px; right: 16px; z-index: 100;
-            background: rgba(15, 23, 42, 0.90); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px; padding: 12px 16px; color: #94A3B8; font-size: 12px;
-        }}
+        .badge {{ display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }}
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -136,31 +174,24 @@ def generate_web_viewer(ply_path, title_text, num_pts, max_bulge_cm, max_recess_
 </head>
 <body>
     <div id="hud">
-        <h2><span>🎯</span> {title_text} <span class="badge">1:1 Metric</span></h2>
-        <div class="stat">Captured Points: <span>{num_pts:,} real laser pulses</span></div>
-        <div class="stat">Max Inward Bulge (Almari/Object): <span style="color:#FF8C00;">-{max_bulge_cm:.1f} cm</span></div>
-        <div class="stat">Max Outward Recess (Gate/Opening): <span style="color:#00E676;">+{max_recess_cm:.1f} cm</span></div>
+        <button id="lblBtn" class="toggle-btn" onclick="toggleLabels()">🏷️ Dimension Labels: ON</button>
+        <span style="font-weight: 600; color: #00E5FF;">📐 Room: {meta['width_x']}m × {meta['length_z']}m (Rectangular 4-Wall)</span>
+        <span style="color: #64748B;">|</span>
+        <span style="color: #94A3B8;">🖱️ Rotate: Drag | Zoom: Scroll | Pan: Right-Click</span>
     </div>
 
     <div id="legend">
-        <b>3D Deviation Color Classification:</b>
-        <div class="legend-item"><div class="color-box" style="background:#FF8C00;"></div> <b>🟧 BULGE OUT (Almari / Box / Furniture)</b></div>
-        <div class="legend-item"><div class="color-box" style="background:#00E5FF;"></div> <b>🟦 NOMINAL FLAT WALL BASELINE</b></div>
-        <div class="legend-item"><div class="color-box" style="background:#00E676;"></div> <b>🟩 RECESS OUTWARD (Gate / Doorway / Niche)</b></div>
-    </div>
-
-    <div id="controls-info">
-        🖱️ <b>Rotate:</b> Left-Click + Drag<br>
-        🔍 <b>Zoom:</b> Mouse Scroll<br>
-        🖐️ <b>Pan:</b> Right-Click + Drag
+        <div><span class="badge" style="background: #00E5FF;"></span>🟦 Normal Wall</div>
+        <div><span class="badge" style="background: #FF8C00;"></span>🟧 Almari: Bahar Nikli (Inward Bulge)</div>
+        <div><span class="badge" style="background: #00E676;"></span>🟩 Gate: Andar Dhasa (Outward Recess)</div>
     </div>
 
     <script>
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0B0E14);
+        scene.background = new THREE.Color(0x07090E);
 
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.05, 100);
-        camera.position.set(0, 1.8, 4.0);
+        camera.position.set(0, 5.5, 6.8);
 
         const renderer = new THREE.WebGLRenderer({{ antialias: true }});
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -168,27 +199,203 @@ def generate_web_viewer(ply_path, title_text, num_pts, max_bulge_cm, max_recess_
         document.body.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 0, 0);
+        controls.target.set(0, 1.2, 0);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
 
-        const amb = new THREE.AmbientLight(0xffffff, 0.9);
+        const amb = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(amb);
 
         // Ground reference grid
-        const grid = new THREE.GridHelper(8, 24, 0x00E5FF, 0x1E293B);
-        grid.position.y = -0.05;
+        const grid = new THREE.GridHelper(10, 20, 0x00E5FF, 0x1E293B);
+        grid.position.y = 0;
         scene.add(grid);
 
-        // Load the PLY
+        // Parse PLY data
+        const rawPly = {json_ply};
         const loader = new THREE.PLYLoader();
-        loader.load('{os.path.basename(ply_path)}', function (geometry) {{
-            geometry.computeVertexNormals();
-            geometry.center();
-            const material = new THREE.PointsMaterial({{ size: 0.05, vertexColors: true }});
-            const pcloud = new THREE.Points(geometry, material);
-            scene.add(pcloud);
+        const geometry = loader.parse(rawPly);
+        geometry.computeVertexNormals();
+
+        const material = new THREE.PointsMaterial({{ size: 0.048, vertexColors: true }});
+        const pcloud = new THREE.Points(geometry, material);
+        scene.add(pcloud);
+
+        // Room metadata
+        const meta = {json_meta};
+
+        // Labels Group (Can be toggled ON/OFF)
+        const labelsGroup = new THREE.Group();
+        scene.add(labelsGroup);
+
+        // Helper to generate Canvas Text Sprites
+        function createTextSprite(text, bgColor, borderColor, textColor, scale = 1.0) {{
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = bgColor;
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            const r = 24, w = 1000, h = 232, x = 12, y = 12;
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 46px sans-serif';
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 512, 128);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.minFilter = THREE.LinearFilter;
+            const mat = new THREE.SpriteMaterial({{ map: tex, depthTest: false }});
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(1.85 * scale, 0.46 * scale, 1);
+            return sprite;
+        }}
+
+        // Helper for dimension line with tick brackets (placed safely OUTSIDE room)
+        function addDimensionLine(p1, p2, offsetAxis, offsetDist, tickLength = 0.2) {{
+            const lineMat = new THREE.LineBasicMaterial({{ color: 0x00E5FF, transparent: true, opacity: 0.85 }});
+            const p1_off = p1.clone();
+            const p2_off = p2.clone();
+            p1_off[offsetAxis] += offsetDist;
+            p2_off[offsetAxis] += offsetDist;
+
+            // Main dimension line
+            const geom = new THREE.BufferGeometry().setFromPoints([p1_off, p2_off]);
+            labelsGroup.add(new THREE.Line(geom, lineMat));
+
+            // Tick marks
+            const tickAxis = (offsetAxis === 'z') ? 'x' : 'z';
+            const t1_a = p1_off.clone(); t1_a[tickAxis] -= tickLength / 2;
+            const t1_b = p1_off.clone(); t1_b[tickAxis] += tickLength / 2;
+            labelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([t1_a, t1_b]), lineMat));
+
+            const t2_a = p2_off.clone(); t2_a[tickAxis] -= tickLength / 2;
+            const t2_b = p2_off.clone(); t2_b[tickAxis] += tickLength / 2;
+            labelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([t2_a, t2_b]), lineMat));
+
+            // Dotted leader lines from room corner to dimension line
+            const leadMat = new THREE.LineDashedMaterial({{ color: 0x00E5FF, dashSize: 0.1, gapSize: 0.1, opacity: 0.4, transparent: true }});
+            const l1 = new THREE.Line(new THREE.BufferGeometry().setFromPoints([p1, p1_off]), leadMat);
+            l1.computeLineDistances();
+            labelsGroup.add(l1);
+
+            const l2 = new THREE.Line(new THREE.BufferGeometry().setFromPoints([p2, p2_off]), leadMat);
+            l2.computeLineDistances();
+            labelsGroup.add(l2);
+
+            return p1_off.clone().lerp(p2_off, 0.5);
+        }}
+
+        const D_N = meta.D_N, D_E = meta.D_E, D_S = meta.D_S, D_W = meta.D_W;
+        const Y_DIM = 1.35;
+        const OUT_OFFSET = 0.65; // Placed 65cm OUTSIDE room so it NEVER meshes with 3D object!
+
+        // Wall 1 (North): Left is (-D_W), Right is (+D_E), at Z = +D_N
+        const p1_start = new THREE.Vector3(-D_W, Y_DIM, D_N);
+        const p1_end = new THREE.Vector3(D_E, Y_DIM, D_N);
+        const mid1 = addDimensionLine(p1_start, p1_end, 'z', OUT_OFFSET);
+        const sp1 = createTextSprite(`◄── Wall 1 (North): ${{meta.width_x}} m ──►`, 'rgba(10, 25, 45, 0.90)', '#00E5FF', '#FFFFFF');
+        sp1.position.copy(mid1);
+        sp1.position.y += 0.35;
+        labelsGroup.add(sp1);
+
+        // Wall 1 Corner extent labels
+        const sp_nw = createTextSprite(`Wall 1 Start (NW)`, 'rgba(15, 23, 42, 0.85)', '#38BDF8', '#94A3B8', 0.65);
+        sp_nw.position.set(-D_W - 0.25, Y_DIM + 0.35, D_N + OUT_OFFSET);
+        labelsGroup.add(sp_nw);
+
+        const sp_ne = createTextSprite(`Wall 1 End / Wall 2 Start (NE)`, 'rgba(15, 23, 42, 0.85)', '#38BDF8', '#94A3B8', 0.65);
+        sp_ne.position.set(D_E + 0.25, Y_DIM + 0.35, D_N + OUT_OFFSET);
+        labelsGroup.add(sp_ne);
+
+        // Wall 2 (East): Left is (+D_N), Right is (-D_S), at X = +D_E
+        const p2_start = new THREE.Vector3(D_E, Y_DIM, D_N);
+        const p2_end = new THREE.Vector3(D_E, Y_DIM, -D_S);
+        const mid2 = addDimensionLine(p2_start, p2_end, 'x', OUT_OFFSET);
+        const sp2 = createTextSprite(`◄── Wall 2 (East): ${{meta.length_z}} m ──►`, 'rgba(10, 25, 45, 0.90)', '#00E5FF', '#FFFFFF');
+        sp2.position.copy(mid2);
+        sp2.position.y += 0.35;
+        labelsGroup.add(sp2);
+
+        const sp_se = createTextSprite(`Wall 2 End / Wall 3 Start (SE)`, 'rgba(15, 23, 42, 0.85)', '#38BDF8', '#94A3B8', 0.65);
+        sp_se.position.set(D_E + OUT_OFFSET, Y_DIM + 0.35, -D_S - 0.25);
+        labelsGroup.add(sp_se);
+
+        // Wall 3 (South): Left is (+D_E), Right is (-D_W), at Z = -D_S
+        const p3_start = new THREE.Vector3(D_E, Y_DIM, -D_S);
+        const p3_end = new THREE.Vector3(-D_W, Y_DIM, -D_S);
+        const mid3 = addDimensionLine(p3_start, p3_end, 'z', -OUT_OFFSET);
+        const sp3 = createTextSprite(`◄── Wall 3 (South): ${{meta.width_x}} m ──►`, 'rgba(10, 25, 45, 0.90)', '#00E5FF', '#FFFFFF');
+        sp3.position.copy(mid3);
+        sp3.position.y += 0.35;
+        labelsGroup.add(sp3);
+
+        const sp_sw = createTextSprite(`Wall 3 End / Wall 4 Start (SW)`, 'rgba(15, 23, 42, 0.85)', '#38BDF8', '#94A3B8', 0.65);
+        sp_sw.position.set(-D_W - 0.25, Y_DIM + 0.35, -D_S - OUT_OFFSET);
+        labelsGroup.add(sp_sw);
+
+        // Wall 4 (West): Left is (-D_S), Right is (+D_N), at X = -D_W
+        const p4_start = new THREE.Vector3(-D_W, Y_DIM, -D_S);
+        const p4_end = new THREE.Vector3(-D_W, Y_DIM, D_N);
+        const mid4 = addDimensionLine(p4_start, p4_end, 'x', -OUT_OFFSET);
+        const sp4 = createTextSprite(`◄── Wall 4 (West): ${{meta.length_z}} m ──►`, 'rgba(10, 25, 45, 0.90)', '#00E5FF', '#FFFFFF');
+        sp4.position.copy(mid4);
+        sp4.position.y += 0.35;
+        labelsGroup.add(sp4);
+
+        // Object distance badges (Elevated high at Y=2.65m with dotted drop lines)
+        meta.objects.forEach(obj => {{
+            const spObj = createTextSprite(
+                obj.label,
+                (obj.type === 'bulge' ? 'rgba(45, 22, 5, 0.92)' : 'rgba(5, 35, 18, 0.92)'),
+                obj.border,
+                '#FFFFFF',
+                1.05
+            );
+            spObj.position.set(obj.x, obj.y, obj.z);
+            labelsGroup.add(spObj);
+
+            // Dotted vertical line dropping to object top
+            const dropMat = new THREE.LineDashedMaterial({{ color: (obj.type === 'bulge' ? 0xFF8C00 : 0x00E676), dashSize: 0.08, gapSize: 0.08, opacity: 0.7, transparent: true }});
+            const dropGeom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(obj.x, obj.y - 0.25, obj.z),
+                new THREE.Vector3(obj.x, obj.target_y, obj.z)
+            ]);
+            const dropLine = new THREE.Line(dropGeom, dropMat);
+            dropLine.computeLineDistances();
+            labelsGroup.add(dropLine);
         }});
+
+        // Toggle Labels Handler
+        let labelsOn = true;
+        window.toggleLabels = function() {{
+            labelsOn = !labelsOn;
+            labelsGroup.visible = labelsOn;
+            const btn = document.getElementById('lblBtn');
+            if (labelsOn) {{
+                btn.className = 'toggle-btn';
+                btn.innerText = '🏷️ Dimension Labels: ON';
+            }} else {{
+                btn.className = 'toggle-btn off';
+                btn.innerText = '🏷️ Dimension Labels: OFF';
+            }}
+        }};
 
         window.addEventListener('resize', () => {{
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -212,24 +419,140 @@ def generate_web_viewer(ply_path, title_text, num_pts, max_bulge_cm, max_recess_
     return out_html
 
 
-def run_continuous_scan():
+def scan_single_wall_continuous(serial_conn, wall_idx, wall_name):
     print("\n" + "=" * 80)
-    print("      🌊 TF-LUNA CONTINUOUS REAL-TIME MULTI-POINT SCANNER")
+    print(f"      📍 SCANNING {wall_name.upper()} (WALL {wall_idx} OF 4)")
     print("=" * 80)
-    print("  NO single-point lock! Captures HUNDREDS of continuous laser distance points.")
-    print("  Calculates exact 1:1 metric displacements for Almaris, Gates, and Walls!")
-    print("=" * 80)
-    print("  Select Scan Mode:")
-    print("    [1] Continuous Wall Sweep (Pan sensor smoothly Left-to-Right across a wall)")
-    print("    [2] Continuous 360° Room Sweep (Rotate body in a complete circle)")
+    print(f"  Instructions for {wall_name}:")
+    print("  1. Aim laser at the LEFT edge / corner of this wall.")
+    print("  2. Press [ENTER] to START recording.")
+    print("  3. Smoothly sweep laser across to the RIGHT edge / corner.")
+    print("  4. Press [ENTER] the exact moment you reach the RIGHT corner to STOP recording!")
     print("=" * 80)
 
     try:
-        choice = input("  👉 Select option [1 or 2, default=1]: ").strip()
+        input(f"  👉 Aim laser at LEFT corner, then press [ENTER] to START {wall_name}... ")
     except Exception:
-        choice = "1"
+        pass
 
-    is_wall_mode = (choice != "2")
+    stop_event = threading.Event()
+    distances_local = []
+    start_time = time.time()
+
+    def record_loop():
+        count = 0
+        while not stop_event.is_set():
+            elapsed = time.time() - start_time
+            raw_dist = None
+            flux = 1800
+
+            if serial_conn:
+                try:
+                    rd, flx = read_sensor_sample(serial_conn)
+                    if rd is not None and rd >= 0.0:
+                        raw_dist = rd
+                        flux = flx
+                except Exception:
+                    raw_dist = None
+
+            if raw_dist is None:
+                if serial_conn:
+                    time.sleep(0.015)
+                    continue
+                else:
+                    # Benchtop simulation fallback
+                    base_cm = 240.0
+                    sim_prog = min(1.0, elapsed / 8.0)
+                    sim_yaw = -35.0 + sim_prog * 70.0
+                    cos_factor = max(0.5, math.cos(math.radians(sim_yaw)))
+                    if wall_idx == 1:
+                        if -35.0 <= sim_yaw <= -8.0:
+                            sim_d = (base_cm - 65.0) / cos_factor + np.random.normal(0, 0.4)
+                        else:
+                            sim_d = base_cm / cos_factor + np.random.normal(0, 0.3)
+                    elif wall_idx == 2:
+                        if 8.0 <= sim_yaw <= 24.0:
+                            sim_d = (base_cm + 60.0) / cos_factor + np.random.normal(0, 0.4)
+                        else:
+                            sim_d = base_cm / cos_factor + np.random.normal(0, 0.3)
+                    else:
+                        sim_d = base_cm / cos_factor + np.random.normal(0, 0.3)
+                    raw_dist = (sim_d - CALIBRATION_OFFSET_CM) / CALIBRATION_SLOPE
+
+            if serial_conn:
+                calib_cm = raw_dist
+            else:
+                calib_cm = (CALIBRATION_SLOPE * raw_dist) + CALIBRATION_OFFSET_CM
+
+            distances_local.append(calib_cm)
+            count += 1
+
+            print(f"\r  🔴 [RECORDING LIVE] #{count:03d} points | Elapsed: {elapsed:>4.1f}s | Live Dist: {calib_cm:>6.1f} cm (Flux: {flux:4d})    ", end="", flush=True)
+            time.sleep(0.018)
+
+    record_thread = threading.Thread(target=record_loop, daemon=True)
+    record_thread.start()
+
+    print(f"\n  🚀 [RECORDING ACTIVE] Sweeping {wall_name.upper()} now!")
+    print(f"  👉 Move laser across the wall. Press [ENTER] when you reach the RIGHT corner to STOP... ", end="", flush=True)
+
+    # Debounce 0.4s to prevent the start Enter keypress from instantly stopping the recording
+    time.sleep(0.4)
+    try:
+        import msvcrt
+        # Flush any trailing keypresses from the start prompt
+        while msvcrt.kbhit():
+            msvcrt.getch()
+        
+        # Wait for user to press ENTER or SPACE when finished sweeping
+        while not stop_event.is_set():
+            if msvcrt.kbhit():
+                ch = msvcrt.getch()
+                if ch in (b'\r', b'\n', b' '):
+                    break
+            time.sleep(0.015)
+    except Exception:
+        try:
+            input()
+        except Exception:
+            time.sleep(3.0)
+
+    stop_event.set()
+    record_thread.join(timeout=1.5)
+
+    sample_count = len(distances_local)
+
+    # If 0 points captured, warn user and retry this wall immediately!
+    if sample_count == 0:
+        print(f"\n\n  ⚠️ [WARNING] 0 points were captured for {wall_name}!")
+        print(f"     Possible causes:")
+        print(f"     1. Enter key was pressed too quickly (please sweep for at least 2-3 seconds).")
+        print(f"     2. ESP-32 sensor was disconnected or stream was paused.")
+        print(f"  👉 Let's re-scan {wall_name} now:\n")
+        time.sleep(1.0)
+        return scan_single_wall_continuous(serial_conn, wall_idx, wall_name)
+
+    # Generate angles uniformly across captured samples: -35 deg to +35 deg
+    angles_local = list(np.linspace(-35.0, 35.0, sample_count))
+
+    print(f"\n  ✅ {wall_name.upper()} COMPLETE! Captured {sample_count} points.")
+    return angles_local, distances_local
+
+
+def main():
+    print("\n" + "=" * 80)
+    print("      🏢 TF-LUNA 4-WALL SEQUENTIAL CONTINUOUS ROOM SCANNER")
+    print("=" * 80)
+    print("  We will scan all 4 walls sequentially with pauses in between:")
+    print("  • Wall 1 (North / Front Wall)")
+    print("  • Wall 2 (East / Right Wall)")
+    print("  • Wall 3 (South / Back Wall)")
+    print("  • Wall 4 (West / Left Wall)")
+    print("\n  Physical 1:1 Metric Depth Mapping:")
+    print("  • 🟧 ORANGE: Objects protruding into room (Almari, Bed, Table, Box)")
+    print("  • 🟩 GREEN : Openings/Recesses (Gate, Open Doorway, Niche)")
+    print("  • 🟦 BLUE  : Normal flat wall baseline")
+    print("=" * 80)
 
     port = find_sensor_port()
     serial_conn = None
@@ -244,262 +567,338 @@ def run_continuous_scan():
             serial_conn.open()
             time.sleep(0.5)
             serial_conn.reset_input_buffer()
-            print(f"\n  ✅ [HARDWARE CONNECTED] ESP-32 + TF-Luna active on {port} @ {BAUDRATE} baud.")
+            print(f"\n  ✅ [CONNECTED] TF-Luna ESP-32 found on {port} @ {BAUDRATE} baud!")
         except Exception as e:
-            print(f"\n  ⚠️ Port busy or error: {e}. Running high-fidelity continuous simulation.")
+            print(f"\n  ⚠️ Port {port} busy or in use: {e}.")
             serial_conn = None
-    else:
-        print("\n  ⚠️ No USB hardware detected. Running continuous simulation.")
 
-    scan_duration_sec = 14 if is_wall_mode else 20
-    print("\n" + "─" * 80)
-    if is_wall_mode:
-        print("  📋 WALL SWEEP INSTRUCTIONS:")
-        print("  1. Aim laser at the LEFT end of your wall.")
-        print(f"  2. Press [ENTER], then smoothly sweep laser across to the RIGHT end (over {scan_duration_sec} sec).")
-        print("  3. Sweep directly over any Almari, table, or open door on the wall!")
-    else:
-        print("  📋 360° ROOM SWEEP INSTRUCTIONS:")
-        print("  1. Stand in the center of your room with the sensor.")
-        print(f"  2. Press [ENTER], then slowly rotate your body 360° in a circle (over {scan_duration_sec} sec).")
-    print("─" * 80)
+    if not serial_conn:
+        print("\n" + "!" * 80)
+        print("  ❌ [SENSOR DISCONNECTED / NOT DETECTED ON USB]")
+        print("     • Windows ko ESP-32 nahi mila (USB cable loose ya disconnected hai).")
+        print("     • Is wajah se pichli baar fake simulation chal gayi thi aur 292 cm dikha raha tha!")
+        print("     • Agar real kamra scan karna hai, toh ESP-32 ki USB cable lagayein.")
+        print("!" * 80)
+        try:
+            choice = input("  👉 Kya aap dummy SIMULATION chalana chahte hain (y/n)? ").strip().lower()
+            if choice != 'y':
+                print("  🛑 Scanning cancelled. Sensor plug karein aur dubara chalayein.\n")
+                return
+        except Exception:
+            return
 
-    try:
-        input("\n  👉 Press [ENTER] now to START continuous laser sampling... ")
-    except Exception:
-        pass
+    walls_info = [
+        (1, "North / Front Wall"),
+        (2, "East / Right Wall"),
+        (3, "South / Back Wall"),
+        (4, "West / Left Wall")
+    ]
 
-    # Matplotlib Live Visualization Setup
-    plt.style.use('dark_background')
-    fig = plt.figure(figsize=(15, 7.5), facecolor='#0B0E14')
-    gs = GridSpec(1, 2, width_ratios=[1.1, 1.25], figure=fig)
+    all_walls_data = []
 
-    ax_2d = fig.add_subplot(gs[0, 0])
-    ax_3d = fig.add_subplot(gs[0, 1], projection='3d')
+    # Sequential scan loop with PAUSE after each wall
+    for w_idx, w_name in walls_info:
+        ang, dist = scan_single_wall_continuous(serial_conn, w_idx, w_name)
+        all_walls_data.append((w_idx, w_name, ang, dist))
 
-    try:
-        win_title = 'TF-Luna Real-Time Wall Sweep' if is_wall_mode else 'TF-Luna Real-Time 360 Panoramic Room'
-        fig.canvas.manager.set_window_title(win_title)
-    except Exception:
-        pass
-
-    angles_deg = []
-    distances_cm = []
-    points_3d = []
-    colors_rgb = []
-    sample_count = 0
-
-    start_time = time.time()
-    last_ui_update = 0
-
-    print("\n  🚀 [STREAMING LIVE LASER PULSES] Move sensor smoothly now...\n")
-
-    while (time.time() - start_time) < scan_duration_sec:
-        elapsed = time.time() - start_time
-        progress_frac = elapsed / scan_duration_sec
-
-        # Sweep angle:
-        # Wall mode: -40 deg (left) to +40 deg (right)
-        # Room mode: 0 deg to 360 deg
-        if is_wall_mode:
-            current_yaw = -40.0 + (progress_frac * 80.0)
-            current_pitch = math.sin(progress_frac * math.pi * 2.0) * 8.0  # slight hand wobble
-        else:
-            current_yaw = progress_frac * 360.0
-            current_pitch = 0.0
-
-        raw_dist = None
-        flux = 1800
-
-        if serial_conn:
+        if w_idx < 4:
+            print("\n" + "─" * 80)
+            print(f"  ⏸️ [PAUSE] Wall {w_idx} saved. Turn 90° right to face {walls_info[w_idx][1]}.")
+            print("─" * 80)
             try:
-                rd, flx = read_sensor_sample(serial_conn)
-                if rd is not None and rd >= 15.0:
-                    raw_dist = rd
-                    flux = flx
+                input(f"  👉 Turn in position, then press [ENTER] to continue to Wall {w_idx + 1}... ")
             except Exception:
-                raw_dist = None
-
-        if raw_dist is None:
-            if serial_conn:
-                time.sleep(0.015)
-                continue
-            else:
-                # Realistic benchtop simulation with an Almari (-65cm bulge) and a Gate (+55cm recess)
-                if is_wall_mode:
-                    base_d_cm = 250.0  # 2.5m wall baseline
-                    # Almari on left (-25 to -8 deg): 65cm closer
-                    if -25.0 <= current_yaw <= -8.0:
-                        sim_d = base_d_cm - 65.0 + np.random.normal(0, 0.4)
-                    # Gate on right (+12 to +28 deg): 55cm deeper
-                    elif 12.0 <= current_yaw <= 28.0:
-                        sim_d = base_d_cm + 55.0 + np.random.normal(0, 0.5)
-                    else:
-                        sim_d = base_d_cm + np.random.normal(0, 0.3)
-                    raw_dist = (sim_d - CALIBRATION_OFFSET_CM) / CALIBRATION_SLOPE
-                else:
-                    # 360 room simulation
-                    rad_s = math.radians(current_yaw)
-                    hw, hd = 180.0, 140.0
-                    d_rect = min(abs(hw / (math.cos(rad_s) + 1e-5)), abs(hd / (math.sin(rad_s) + 1e-5)))
-                    if 45.0 <= current_yaw <= 75.0:
-                        d_rect -= 60.0  # Almari
-                    elif 160.0 <= current_yaw <= 195.0:
-                        d_rect += 70.0  # Gate
-                    raw_dist = (d_rect - CALIBRATION_OFFSET_CM) / CALIBRATION_SLOPE + np.random.normal(0, 0.4)
-
-        # Apply calibrated equation
-        calib_cm = (CALIBRATION_SLOPE * raw_dist) + CALIBRATION_OFFSET_CM
-        dist_m = calib_cm / 100.0
-
-        # Physical 1:1 metric coordinate transformation:
-        yaw_rad = math.radians(current_yaw)
-        pitch_rad = math.radians(current_pitch)
-
-        if is_wall_mode:
-            # Wall mode: X = horizontal span along wall, Y = vertical height, Z = depth (distance to wall)
-            x_m = dist_m * math.sin(yaw_rad)
-            y_m = 1.20 + (dist_m * math.sin(pitch_rad))  # waist/holding level
-            z_m = dist_m * math.cos(yaw_rad)
-        else:
-            # 360 Room mode: Polar to Cartesian room floorplan
-            x_m = dist_m * math.sin(yaw_rad)
-            y_m = 1.20 + (dist_m * math.sin(pitch_rad))
-            z_m = dist_m * math.cos(yaw_rad)
-
-        angles_deg.append(current_yaw)
-        distances_cm.append(calib_cm)
-        points_3d.append((x_m, y_m, z_m))
-        sample_count += 1
-
-        # Real-time baseline comparison:
-        # Compare current distance to the running median wall baseline
-        med_baseline = float(np.median(distances_cm))
-        deviation_cm = calib_cm - med_baseline
-
-        # Dynamic color coding:
-        if deviation_cm <= -18.0:
-            # BULGE OUT INWARD (Almari / Box / Protrusion) -> Orange/Amber
-            tag = "🟧 BULGE (Almari/Object)"
-            r, g, b = 255, 140, 0
-        elif deviation_cm >= +20.0:
-            # RECESS OUTWARD (Gate / Doorway / Recess) -> Emerald Green
-            tag = "🟩 RECESS (Gate/Doorway)"
-            r, g, b = 0, 230, 118
-        else:
-            # NOMINAL WALL BASELINE -> Cyan / Sky Blue
-            tag = "🟦 FLAT WALL"
-            r, g, b = 0, 229, 255
-
-        colors_rgb.append((r, g, b))
-
-        print(f"\r  [SCAN {progress_frac*100:>3.0f}%] #{sample_count:04d} | Yaw: {current_yaw:>+5.1f}° | Dist: {calib_cm:>6.1f} cm | Dev: {deviation_cm:>+5.1f}cm | {tag:<26}", end="", flush=True)
-
-        # Update Live GUI at ~10 Hz
-        if time.time() - last_ui_update > 0.09:
-            last_ui_update = time.time()
-
-            # Plot 1: 2D Live Curvature / Radar Profile
-            ax_2d.clear()
-            ax_2d.set_facecolor('#0B0E14')
-            ax_2d.grid(True, linestyle='--', color='#1E293B', alpha=0.7)
-
-            if is_wall_mode:
-                ax_2d.set_title("Live Wall Distance Profile (Angle vs Distance)", color='#F8FAFC', fontsize=11, fontweight='bold')
-                ax_2d.set_xlabel("Sweep Yaw Angle (°)", color='#94A3B8')
-                ax_2d.set_ylabel("Calibrated Laser Distance (cm)", color='#94A3B8')
-                ax_2d.axhline(med_baseline, color='#00E5FF', linestyle='--', linewidth=1.5, label=f'Wall Baseline ({med_baseline:.1f} cm)')
-                
-                # Scatter colored points
-                c_norm = [np.array(c)/255.0 for c in colors_rgb]
-                ax_2d.scatter(angles_deg, distances_cm, c=c_norm, s=25, zorder=5)
-                ax_2d.plot(angles_deg, distances_cm, color='#475569', linewidth=1.0, alpha=0.6)
-            else:
-                ax_2d.set_title("Live 360° Room Polar Boundary", color='#F8FAFC', fontsize=11, fontweight='bold')
-                xs_2d = [p[0] for p in points_3d]
-                zs_2d = [p[2] for p in points_3d]
-                c_norm = [np.array(c)/255.0 for c in colors_rgb]
-                ax_2d.scatter(xs_2d, zs_2d, c=c_norm, s=20)
-                ax_2d.plot(0, 0, marker='+', markersize=12, color='#FFFFFF', label='You (Center)')
-
-            ax_2d.legend(loc='upper right', facecolor='#0F172A', edgecolor='#334155', fontsize=8)
-
-            # Plot 2: 3D Reconstructed Point Cloud
-            ax_3d.clear()
-            ax_3d.set_facecolor('#0B0E14')
-            ax_3d.set_title("Real-Time 3D Metric Spatial Surface", color='#F8FAFC', fontsize=11, fontweight='bold')
-            xs_p = np.array([p[0] for p in points_3d])
-            ys_p = np.array([p[1] for p in points_3d])
-            zs_p = np.array([p[2] for p in points_3d])
-
-            c_norm = [np.array(c)/255.0 for c in colors_rgb]
-            ax_3d.scatter(xs_p, zs_p, ys_p, c=c_norm, s=28, depthshade=False)
-            ax_3d.set_xlabel('X (Span m)', color='#94A3B8', fontsize=8)
-            ax_3d.set_ylabel('Z (Depth m)', color='#94A3B8', fontsize=8)
-            ax_3d.set_zlabel('Y (Height m)', color='#94A3B8', fontsize=8)
-
-            plt.pause(0.001)
+                pass
 
     if serial_conn:
         serial_conn.close()
 
     print("\n\n" + "=" * 80)
-    print("      🎉 CONTINUOUS SCAN COMPLETED! PROCESSING METRIC DIGITAL TWIN")
+    print("      🎉 ALL 4 WALLS SCANNED! ASSEMBLING COMPLETE 3D ROOM DIGITAL TWIN")
     print("=" * 80)
 
-    arr_dists = np.array(distances_cm)
-    med_b = float(np.median(arr_dists))
-    deviations = arr_dists - med_b
+    # 1. Determine baseline perpendicular distances for all 4 walls using cos(theta) flattening:
+    # Wall 1: North (+Z), Wall 2: East (+X), Wall 3: South (-Z), Wall 4: West (-X)
+    perp_baselines_cm = {}
+    for w_idx, w_name, angles, dists in all_walls_data:
+        smooth_d = rolling_median(dists, window=5)
+        perp_depths = [d * math.cos(math.radians(a)) for a, d in zip(angles, smooth_d)]
+        perp_baselines_cm[w_idx] = float(np.median(perp_depths))
 
-    bulge_pts = deviations[deviations <= -15.0]
-    recess_pts = deviations[deviations >= +18.0]
-    max_bulge_cm = float(abs(np.min(bulge_pts))) if len(bulge_pts) > 0 else 0.0
-    max_recess_cm = float(np.max(recess_pts)) if len(recess_pts) > 0 else 0.0
+    D_N = perp_baselines_cm.get(1, 240.0) / 100.0
+    D_E = perp_baselines_cm.get(2, 240.0) / 100.0
+    D_S = perp_baselines_cm.get(3, 240.0) / 100.0
+    D_W = perp_baselines_cm.get(4, 240.0) / 100.0
 
-    print(f"  • Total Laser Pulses   : {sample_count:,} continuous points")
-    print(f"  • Nominal Wall Baseline: {med_b:.1f} cm ({med_b/100:.2f} meters)")
-    print(f"  • Max Inward Bulge     : {max_bulge_cm:.1f} cm (Almari / Furniture protruding inward)")
-    print(f"  • Max Outward Recess   : {max_recess_cm:.1f} cm (Gate / Doorway recessed outward)")
-    print("=" * 80)
+    room_width_x = D_W + D_E
+    room_length_z = D_N + D_S
 
-    # Multi-layer vertical extrusion for rich 3D visualization:
-    rich_3d_points = []
-    # Add vertical thickness (10 vertical layers) so the wall and almari appear as real solid surfaces
-    for y_offset in np.linspace(-0.6, 0.6, 12):
-        for (x_i, y_i, z_i), (r_i, g_i, b_i) in zip(points_3d, colors_rgb):
-            rich_3d_points.append((x_i, y_i + y_offset, z_i, r_i, g_i, b_i))
+    room_3d_points = []
+    detected_features = []
 
-    # Export PLY point clouds
-    ply_out = "data/continuous_scan.ply"
-    live_ply = "data/live_scan.ply"
-    room_ply = "data/room_scan.ply"
-    for pf in [ply_out, live_ply, room_ply, "reports/continuous_scan.ply"]:
-        save_ply(pf, rich_3d_points)
+    # Process each wall into straight rectangular planar walls with 1:1 metric deviations
+    for w_idx, w_name, angles, dists in all_walls_data:
+        N = len(dists)
+        if N == 0:
+            continue
+        smooth_d = rolling_median(dists, window=5)
+        base_cm = perp_baselines_cm[w_idx]
+        # 1. First pass: detect candidate deviations
+        candidates = []
+        for i, (ang, d_cm) in enumerate(zip(angles, smooth_d)):
+            prog = i / max(1, N - 1)
+            rad = math.radians(ang)
+            perp_depth_cm = d_cm * math.cos(rad)
+            dev_cm = perp_depth_cm - base_cm
 
-    # Generate Standalone WebGL Viewer
-    scan_title = "Continuous Wall Surface Scan" if is_wall_mode else "Continuous 360 Room Scan"
-    html_viewer = generate_web_viewer(
-        "reports/continuous_scan.ply",
-        scan_title,
-        len(rich_3d_points),
-        max_bulge_cm,
-        max_recess_cm
-    )
-    print(f"  🌐 Standalone Interactive 3D WebGL Viewer: '{html_viewer}'")
+            # Physical object threshold: at least 15 cm depth deviation
+            if dev_cm <= -15.0:
+                ft = 'bulge'
+            elif dev_cm >= 15.0:
+                ft = 'recess'
+            else:
+                ft = 'wall'
+            candidates.append((prog, dev_cm, ft))
 
-    # Automatically launch web browser
+        # 2. Cluster candidates: require at least 12 consecutive samples (~25cm width) to qualify as real physical furniture/door
+        cluster_map = ['wall'] * N
+        cluster_depths = {}
+        cur_ft = 'wall'
+        cur_idx = []
+        for i, (prog, dev_cm, ft) in enumerate(candidates):
+            if ft != 'wall':
+                if cur_ft == ft:
+                    cur_idx.append(i)
+                else:
+                    if len(cur_idx) >= 12:
+                        avg_d = float(np.median([candidates[k][1] for k in cur_idx]))
+                        detected_features.append((w_idx, w_name, cur_ft, list(cur_idx)))
+                        for k in cur_idx:
+                            cluster_map[k] = cur_ft
+                            cluster_depths[k] = avg_d
+                    cur_ft = ft
+                    cur_idx = [i]
+            else:
+                if len(cur_idx) >= 12:
+                    avg_d = float(np.median([candidates[k][1] for k in cur_idx]))
+                    detected_features.append((w_idx, w_name, cur_ft, list(cur_idx)))
+                    for k in cur_idx:
+                        cluster_map[k] = cur_ft
+                        cluster_depths[k] = avg_d
+                cur_ft = 'wall'
+                cur_idx = []
+        if len(cur_idx) >= 12:
+            avg_d = float(np.median([candidates[k][1] for k in cur_idx]))
+            detected_features.append((w_idx, w_name, cur_ft, list(cur_idx)))
+            for k in cur_idx:
+                cluster_map[k] = cur_ft
+                cluster_depths[k] = avg_d
+
+        # 3. Build strictly planar 90-degree rectangular wall points with clean orthogonal steps
+        wall_coords = []
+        for i in range(N):
+            prog = candidates[i][0]
+            ftype = cluster_map[i]
+            if ftype == 'bulge':
+                r, g, b = 255, 140, 0
+                max_h = 1.90
+                dev_m = (cluster_depths.get(i, -30.0)) / 100.0
+            elif ftype == 'recess':
+                r, g, b = 0, 230, 118
+                max_h = 2.15
+                dev_m = (cluster_depths.get(i, 30.0)) / 100.0
+            else:
+                ftype = 'wall'
+                r, g, b = 0, 229, 255
+                max_h = 2.40
+                dev_m = 0.0  # Nominal wall is strictly FLAT on the rectangular bounding plane!
+
+            # Planar rectangular coordinate math
+            if w_idx == 1:
+                # North Wall: straight along Z = +D_N
+                x_base = -D_W + prog * (D_E + D_W)
+                z_base = D_N
+                x = x_base
+                z = z_base + dev_m
+            elif w_idx == 2:
+                # East Wall: straight along X = +D_E
+                x_base = D_E
+                z_base = D_N - prog * (D_N + D_S)
+                x = x_base + dev_m
+                z = z_base
+            elif w_idx == 3:
+                # South Wall: straight along Z = -D_S
+                x_base = D_E - prog * (D_E + D_W)
+                z_base = -D_S
+                x = x_base
+                z = z_base - dev_m
+            elif w_idx == 4:
+                # West Wall: straight along X = -D_W
+                x_base = -D_W
+                z_base = -D_S + prog * (D_N + D_S)
+                x = x_base - dev_m
+                z = z_base
+
+            wall_coords.append((x, z, x_base, z_base, r, g, b, max_h, ftype))
+
+        # Extrude points
+        for idx_pt, (x, z, xb, zb, r, g, b, max_h, ftype) in enumerate(wall_coords):
+            for yh in np.linspace(0.1, max_h, 18):
+                room_3d_points.append((x, yh, z, r, g, b))
+
+            # Side return walls for rectangular object steps
+            is_edge = False
+            if idx_pt == 0 and ftype != 'wall':
+                is_edge = True
+            elif idx_pt == len(wall_coords) - 1 and ftype != 'wall':
+                is_edge = True
+            elif idx_pt > 0 and wall_coords[idx_pt - 1][8] != ftype:
+                is_edge = True
+            elif idx_pt < len(wall_coords) - 1 and wall_coords[idx_pt + 1][8] != ftype:
+                is_edge = True
+            
+            if is_edge and ftype != 'wall':
+                for interp_d in np.linspace(0, 1, 6):
+                    ix = xb + interp_d * (x - xb)
+                    iz = zb + interp_d * (z - zb)
+                    for yh in np.linspace(0.1, max_h, 10):
+                        room_3d_points.append((ix, yh, iz, r, g, b))
+
+    # Ground floor grid
+    for fx in np.arange(-D_W, D_E + 0.05, 0.15):
+        for fz in np.arange(-D_S, D_N + 0.05, 0.15):
+            room_3d_points.append((float(fx), 0.0, float(fz), 20, 35, 55))
+
+    # Detect features metadata
+    labeled_objects = []
+    for w_idx, w_name, ftype, indices in detected_features:
+        w_angs = all_walls_data[w_idx - 1][2]
+        w_dists = all_walls_data[w_idx - 1][3]
+        w_smooth_d = rolling_median(w_dists, window=5)
+        base = perp_baselines_cm[w_idx]
+        devs = [w_smooth_d[i] * math.cos(math.radians(w_angs[i])) - base for i in indices]
+        avg_dev = abs(float(np.mean(devs)))
+        mid_idx = indices[len(indices) // 2]
+        prog = mid_idx / max(1, len(w_dists) - 1)
+
+        if w_idx == 1:
+            cx = -D_W + prog * (D_E + D_W)
+            cz = D_N + (float(np.mean(devs)) / 100.0)
+        elif w_idx == 2:
+            cx = D_E + (float(np.mean(devs)) / 100.0)
+            cz = D_N - prog * (D_N + D_S)
+        elif w_idx == 3:
+            cx = D_E - prog * (D_E + D_W)
+            cz = -D_S - (float(np.mean(devs)) / 100.0)
+        elif w_idx == 4:
+            cx = -D_W - (float(np.mean(devs)) / 100.0)
+            cz = -D_S + prog * (D_N + D_S)
+
+        if ftype == 'bulge':
+            labeled_objects.append({
+                'name': 'Almari',
+                'type': 'bulge',
+                'label': f"Almari: {avg_dev:.0f} cm Bahar (Inward Bulge)",
+                'dist_cm': int(round(avg_dev)),
+                'x': float(round(cx, 3)), 'y': 2.65, 'z': float(round(cz, 3)),
+                'target_y': 1.9,
+                'color': '#FF8C00',
+                'border': '#FFA726'
+            })
+        elif ftype == 'recess':
+            labeled_objects.append({
+                'name': 'Gate',
+                'type': 'recess',
+                'label': f"Gate: {avg_dev:.0f} cm Andar (Outward Recess)",
+                'dist_cm': int(round(avg_dev)),
+                'x': float(round(cx, 3)), 'y': 2.65, 'z': float(round(cz, 3)),
+                'target_y': 2.15,
+                'color': '#00E676',
+                'border': '#69F0AE'
+            })
+
+    meta = {
+        'D_N': float(round(D_N, 3)), 'D_E': float(round(D_E, 3)), 'D_S': float(round(D_S, 3)), 'D_W': float(round(D_W, 3)),
+        'width_x': float(round(room_width_x, 3)),
+        'length_z': float(round(room_length_z, 3)),
+        'objects': labeled_objects
+    }
+
+    # Save to standard PLY files
+    ply_path = "reports/continuous_scan.ply"
+    save_ply(ply_path, room_3d_points)
+    save_ply("data/room_scan.ply", room_3d_points)
+    save_ply("data/live_scan.ply", room_3d_points)
+
+    # Generate clean WebGL viewer (with rectangular dimension lines & object labels)
+    html_path = generate_clean_web_viewer(ply_path, meta)
+    print(f"  🌐 Clean Rectangular 3D Room Viewer: '{html_path}'")
+
+    # Save permanently into scans/ archive folder so scans can be revisited anytime
+    archive_scan(ply_path, html_path, meta)
+
+    # Launch browser automatically
     try:
         import webbrowser
-        webbrowser.open(f"file:///{os.path.abspath(html_viewer)}")
-        print("  🚀 Opened 3D WebGL Model in your default web browser!")
+        webbrowser.open(f"file:///{os.path.abspath(html_path)}")
+        print("  🚀 Opened 3D Room in your web browser!")
     except Exception:
         pass
 
+
+def archive_scan(ply_path, html_path, meta):
+    """Permanently saves every scan into scans/ folder with timestamp so scans are never lost."""
+    os.makedirs("scans", exist_ok=True)
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    date_str = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    arc_ply = f"scans/room_scan_{ts}.ply"
+    arc_html = f"scans/room_scan_{ts}_viewer.html"
+    arc_meta = f"scans/room_scan_{ts}_meta.json"
+
     try:
-        plt.show()
+        import shutil
+        shutil.copyfile(ply_path, arc_ply)
+        shutil.copyfile(html_path, arc_html)
+        with open(arc_meta, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+    except Exception as e:
+        print(f"  ⚠️ Archive copy error: {e}")
+
+    # Append to scans catalog
+    catalog_path = "scans/scan_catalog.json"
+    catalog = []
+    if os.path.exists(catalog_path):
+        try:
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                catalog = json.load(f)
+        except Exception:
+            catalog = []
+
+    catalog.append({
+        'scan_id': f"room_scan_{ts}",
+        'timestamp': ts,
+        'date_time': date_str,
+        'ply_file': arc_ply,
+        'html_file': arc_html,
+        'width_x': meta.get('width_x'),
+        'length_z': meta.get('length_z'),
+        'objects_count': len(meta.get('objects', []))
+    })
+
+    try:
+        with open(catalog_path, "w", encoding="utf-8") as f:
+            json.dump(catalog, f, indent=2)
+        from scratch.generate_catalog_page import generate_catalog_html
+        generate_catalog_html()
     except Exception:
         pass
+
+    print(f"\n  💾 [PERMANENT ARCHIVE SAVED] Scanned room stored permanently in:")
+    print(f"     📁 HTML Viewer: '{arc_html}' (Double-click to open anytime)")
+    print(f"     📁 Point Cloud: '{arc_ply}'")
+    return arc_html
 
 
 if __name__ == '__main__':
-    run_continuous_scan()
+    main()

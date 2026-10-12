@@ -1,0 +1,62 @@
+[
+  {
+    "scan_id": "room_scan_20261011_141747",
+    "timestamp": "20261011_141747",
+    "date_time": "2026-10-11 14:17:47",
+    "ply_file": "scans/room_scan_20261011_141747.ply",
+    "html_file": "scans/room_scan_20261011_141747_viewer.html",
+    "width_x": 4.8,
+    "length_z": 4.8,
+    "objects_count": 2
+  },
+  {
+    "scan_id": "room_scan_20261011_143017",
+    "timestamp": "20261011_143017",
+    "date_time": "2026-10-11 14:30:17",
+    "ply_file": "scans/room_scan_20261011_143017.ply",
+    "html_file": "scans/room_scan_20261011_143017_viewer.html",
+    "width_x": 2.058,
+    "length_z": 2.058,
+    "objects_count": 42
+  },
+  {
+    "scan_id": "room_scan_20261011_144426",
+    "timestamp": "20261011_144426",
+    "date_time": "2026-10-11 14:44:26",
+    "ply_file": "scans/room_scan_20261011_144426.ply",
+    "html_file": "scans/room_scan_20261011_144426_viewer.html",
+    "width_x": 4.802,
+    "length_z": 4.798,
+    "objects_count": 2
+  },
+  {
+    "scan_id": "room_scan_20261011_144527",
+    "timestamp": "20261011_144527",
+    "date_time": "2026-10-11 14:45:27",
+    "ply_file": "scans/room_scan_20261011_144527.ply",
+    "html_file": "scans/room_scan_20261011_144527_viewer.html",
+    "width_x": 4.803,
+    "length_z": 4.797,
+    "objects_count": 2
+  },
+  {
+    "scan_id": "room_scan_20261011_150718",
+    "timestamp": "20261011_150718",
+    "date_time": "2026-10-11 15:07:18",
+    "ply_file": "scans/room_scan_20261011_150718.ply",
+    "html_file": "scans/room_scan_20261011_150718_viewer.html",
+    "width_x": 4.801,
+    "length_z": 4.798,
+    "objects_count": 2
+  },
+  {
+    "scan_id": "room_scan_20261011_155514",
+    "timestamp": "20261011_155514",
+    "date_time": "2026-10-11 15:55:14",
+    "ply_file": "scans/room_scan_20261011_155514.ply",
+    "html_file": "scans/room_scan_20261011_155514_viewer.html",
+    "width_x": 1.426,
+    "length_z": 1.482,
+    "objects_count": 16
+  }
+]

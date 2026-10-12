@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TF-Luna 3D Room Scans Archive Gallery</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #07090E; color: #E2E8F0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 32px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header {
+            text-align: center; margin-bottom: 32px;
+            padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .header h1 { font-size: 26px; color: #FFFFFF; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .header h1 span { color: #00E5FF; }
+        .header p { color: #94A3B8; font-size: 14px; }
+        .actions-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; background: rgba(15, 23, 42, 0.6);
+            padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+        }
+        .scan-count { font-size: 13px; color: #38BDF8; font-weight: 600; }
+        .scan-grid { display: flex; flex-direction: column; gap: 16px; }
+        .scan-card {
+            background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 20px; transition: transform 0.15s, border-color 0.15s;
+        }
+        .scan-card:hover { border-color: rgba(0, 229, 255, 0.4); transform: translateY(-2px); }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px;
+        }
+        .scan-title { font-size: 16px; font-weight: 700; color: #FFFFFF; display: flex; align-items: center; }
+        .scan-sub { font-size: 12px; color: #64748B; margin-top: 2px; }
+        .scan-sub code { color: #94A3B8; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; }
+        .view-btn {
+            background: linear-gradient(135deg, #00E5FF, #00B0FF); color: #07090E;
+            text-decoration: none; font-weight: 700; font-size: 13px;
+            padding: 9px 18px; border-radius: 8px; transition: opacity 0.15s, transform 0.15s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .view-btn:hover { opacity: 0.92; transform: scale(1.03); }
+        .card-body {
+            display: flex; gap: 12px; margin-bottom: 12px;
+            background: rgba(0,0,0,0.25); padding: 10px 14px; border-radius: 8px;
+        }
+        .stat-pill { display: flex; flex-direction: column; gap: 2px; }
+        .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; font-weight: 700; }
+        .stat-val { font-size: 14px; font-weight: 700; color: #F1F5F9; }
+        .card-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 TF-Luna 3D Room Scans <span>Archive Gallery</span></h1>
+            <p>Permanent historical records of all completed 3D room point-cloud scans</p>
+        </div>
+        <div class="actions-bar">
+            <span class="scan-count">📊 Total Archived Scans: 6</span>
+            <span style="font-size: 12px; color: #64748B;">Click any scan below to open full interactive 3D model</span>
+        </div>
+        <div class="scan-grid">
+            
+        <div class="scan-card">
+            <div class="card-header">
+                <div>
+                    <div class="scan-title">📅 2026-10-11 15:55:14 <span style='background: #00E5FF; color: #07090E; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 800; margin-left: 8px;'>LATEST</span></div>
+                    <div class="scan-sub">File: <code>room_scan_20261011_155514_viewer.html</code></div>
+                </div>
+                <a href="room_scan_20261011_155514_viewer.html" target="_blank" class="view-btn">👁️ Open 3D Room</a>
+            </div>
+            <div class="card-body">
+                <div class="stat-pill">
+                    <span class="stat-label">Room Dimensions</span>
+                    <span class="stat-val">1.426 m × 1.482 m</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Point Cloud</span>
+                    <span class="stat-val" style="color: #94A3B8; font-family: monospace; font-size: 12px;">room_scan_20261011_155514.ply</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span style="font-size: 11px; color: #64748B; font-weight: 600; margin-right: 8px;">DETECTED:</span>
+                <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Pillar/Shelf: 11 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 24 cm Andar (Outward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Pillar/Shelf: 14 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Pillar/Shelf: 7 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Niche/Recess: 12 cm Andar (Outward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 99 cm Andar (Outward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 35 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 38 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Pillar/Shelf: 8 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Niche/Recess: 11 cm Andar (Outward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Niche/Recess: 8 cm Andar (Outward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Pillar/Shelf: 28 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Niche/Recess: 8 cm Andar (Outward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 47 cm Bahar (Inward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Niche/Recess: 22 cm Andar (Outward)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Niche/Recess: 8 cm Andar (Outward)</span>
+            </div>
+        </div>
+        
+        <div class="scan-card">
+            <div class="card-header">
+                <div>
+                    <div class="scan-title">📅 2026-10-11 15:07:18</div>
+                    <div class="scan-sub">File: <code>room_scan_20261011_150718_viewer.html</code></div>
+                </div>
+                <a href="room_scan_20261011_150718_viewer.html" target="_blank" class="view-btn">👁️ Open 3D Room</a>
+            </div>
+            <div class="card-body">
+                <div class="stat-pill">
+                    <span class="stat-label">Room Dimensions</span>
+                    <span class="stat-val">4.801 m × 4.798 m</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Point Cloud</span>
+                    <span class="stat-val" style="color: #94A3B8; font-family: monospace; font-size: 12px;">room_scan_20261011_150718.ply</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span style="font-size: 11px; color: #64748B; font-weight: 600; margin-right: 8px;">DETECTED:</span>
+                <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 65 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 60 cm Andar (Outward Recess)</span>
+            </div>
+        </div>
+        
+        <div class="scan-card">
+            <div class="card-header">
+                <div>
+                    <div class="scan-title">📅 2026-10-11 14:45:27</div>
+                    <div class="scan-sub">File: <code>room_scan_20261011_144527_viewer.html</code></div>
+                </div>
+                <a href="room_scan_20261011_144527_viewer.html" target="_blank" class="view-btn">👁️ Open 3D Room</a>
+            </div>
+            <div class="card-body">
+                <div class="stat-pill">
+                    <span class="stat-label">Room Dimensions</span>
+                    <span class="stat-val">4.803 m × 4.797 m</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Point Cloud</span>
+                    <span class="stat-val" style="color: #94A3B8; font-family: monospace; font-size: 12px;">room_scan_20261011_144527.ply</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span style="font-size: 11px; color: #64748B; font-weight: 600; margin-right: 8px;">DETECTED:</span>
+                <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 65 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 60 cm Andar (Outward Recess)</span>
+            </div>
+        </div>
+        
+        <div class="scan-card">
+            <div class="card-header">
+                <div>
+                    <div class="scan-title">📅 2026-10-11 14:44:26</div>
+                    <div class="scan-sub">File: <code>room_scan_20261011_144426_viewer.html</code></div>
+                </div>
+                <a href="room_scan_20261011_144426_viewer.html" target="_blank" class="view-btn">👁️ Open 3D Room</a>
+            </div>
+            <div class="card-body">
+                <div class="stat-pill">
+                    <span class="stat-label">Room Dimensions</span>
+                    <span class="stat-val">4.802 m × 4.798 m</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Point Cloud</span>
+                    <span class="stat-val" style="color: #94A3B8; font-family: monospace; font-size: 12px;">room_scan_20261011_144426.ply</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span style="font-size: 11px; color: #64748B; font-weight: 600; margin-right: 8px;">DETECTED:</span>
+                <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 65 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 60 cm Andar (Outward Recess)</span>
+            </div>
+        </div>
+        
+        <div class="scan-card">
+            <div class="card-header">
+                <div>
+                    <div class="scan-title">📅 2026-10-11 14:30:17</div>
+                    <div class="scan-sub">File: <code>room_scan_20261011_143017_viewer.html</code></div>
+                </div>
+                <a href="room_scan_20261011_143017_viewer.html" target="_blank" class="view-btn">👁️ Open 3D Room</a>
+            </div>
+            <div class="card-body">
+                <div class="stat-pill">
+                    <span class="stat-label">Room Dimensions</span>
+                    <span class="stat-val">2.058 m × 2.058 m</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Point Cloud</span>
+                    <span class="stat-val" style="color: #94A3B8; font-family: monospace; font-size: 12px;">room_scan_20261011_143017.ply</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span style="font-size: 11px; color: #64748B; font-weight: 600; margin-right: 8px;">DETECTED:</span>
+                <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 58 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 51 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 50 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 54 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 54 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 52 cm Andar (Outward Recess)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 49 cm Bahar (Inward Bulge)</span>
+            </div>
+        </div>
+        
+        <div class="scan-card">
+            <div class="card-header">
+                <div>
+                    <div class="scan-title">📅 2026-10-11 14:17:47</div>
+                    <div class="scan-sub">File: <code>room_scan_20261011_141747_viewer.html</code></div>
+                </div>
+                <a href="room_scan_20261011_141747_viewer.html" target="_blank" class="view-btn">👁️ Open 3D Room</a>
+            </div>
+            <div class="card-body">
+                <div class="stat-pill">
+                    <span class="stat-label">Room Dimensions</span>
+                    <span class="stat-val">4.8 m × 4.8 m</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Point Cloud</span>
+                    <span class="stat-val" style="color: #94A3B8; font-family: monospace; font-size: 12px;">room_scan_20261011_141747.ply</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span style="font-size: 11px; color: #64748B; font-weight: 600; margin-right: 8px;">DETECTED:</span>
+                <span style='background: rgba(255,255,255,0.08); border: 1px solid #FF8C00; color: #FF8C00; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Almari: 65 cm Bahar (Inward Bulge)</span> <span style='background: rgba(255,255,255,0.08); border: 1px solid #00E676; color: #00E676; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;'>Gate: 60 cm Andar (Outward Recess)</span>
+            </div>
+        </div>
+        
+        </div>
+    </div>
+</body>
+</html>
