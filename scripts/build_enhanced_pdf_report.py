@@ -508,6 +508,30 @@ def build_pdf():
     story.append(t_sub)
     story.append(Spacer(1, 4))
 
+    # Actual Physical Testbed & Wall Profile Photos (Uploaded materials)
+    p_scan1 = os.path.join(assets_dir, "physical_scan_bench_1.jpg")
+    p_profile = os.path.join(assets_dir, "pptx2_ground_s8_img2.jpg")
+    if os.path.exists(p_scan1) and os.path.exists(p_profile):
+        p_imgs = [
+            [
+                Image(p_scan1, width=220, height=130),
+                Image(p_profile, width=295, height=130)
+            ],
+            [
+                Paragraph("<b>Figure 4(a):</b> Physical Testbed &amp; Measuring Tape Calibration Setup", caption_style),
+                Paragraph("<b>Figure 4(b):</b> 2D Structural Profile with Baseline &amp; Cavity/Bulge Residuals (Ground Tab 2)", caption_style)
+            ]
+        ]
+        t_pimgs = Table(p_imgs, colWidths=[225, 298])
+        t_pimgs.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 1),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+        ]))
+        story.append(t_pimgs)
+        story.append(Spacer(1, 4))
+
     story.append(Paragraph("<b>Formal Subsystem Implementation Status Matrix:</b>", h2_style))
 
     status_matrix_data = [
@@ -666,7 +690,7 @@ def build_pdf():
         body_style
     ))
 
-    # Images: YDLIDAR X2 Listing and Specs
+    # Images: YDLIDAR X2 Listing, Specs, Features
     yd_listing_path = os.path.join(assets_dir, "ydlidar_x2_listing.png")
     yd_specs_path = os.path.join(assets_dir, "ydlidar_x2_specs.png")
     if os.path.exists(yd_listing_path) and os.path.exists(yd_specs_path):
@@ -676,8 +700,8 @@ def build_pdf():
                 Image(yd_specs_path, width=255, height=105)
             ],
             [
-                Paragraph("<b>Figure 2(a):</b> YDLIDAR X2 Product Listing (Ref: ₹7,189 incl. GST)", caption_style),
-                Paragraph("<b>Figure 2(b):</b> Manufacturer Specification Table (3kHz, 7Hz, 8m Range)", caption_style)
+                Paragraph("<b>Figure 5(a):</b> YDLIDAR X2 Product Listing (Ref: ₹7,189 incl. GST)", caption_style),
+                Paragraph("<b>Figure 5(b):</b> Manufacturer Specification Table (3kHz, 7Hz, 8m Range)", caption_style)
             ]
         ]
         t_yd = Table(yd_imgs, colWidths=[260, 263])
@@ -724,7 +748,7 @@ def build_pdf():
         body_style
     ))
 
-    # Airframe Image
+    # Airframe Image & Features Image
     drone_img_path = os.path.join(assets_dir, "drone_airframe.png")
     features_img_path = os.path.join(assets_dir, "ydlidar_x2_features.png")
     if os.path.exists(drone_img_path) and os.path.exists(features_img_path):
@@ -734,8 +758,8 @@ def build_pdf():
                 Image(features_img_path, width=310, height=130)
             ],
             [
-                Paragraph("<b>Figure 3(a):</b> F450 Carbon/Glass Quadcopter Candidate", caption_style),
-                Paragraph("<b>Figure 3(b):</b> YDLIDAR X2 Core Features &amp; Applications", caption_style)
+                Paragraph("<b>Figure 6(a):</b> F450 Carbon/Glass Quadcopter Candidate", caption_style),
+                Paragraph("<b>Figure 6(b):</b> YDLIDAR X2 Core Features &amp; Applications", caption_style)
             ]
         ]
         t_dimg = Table(drone_imgs, colWidths=[205, 318])
@@ -1042,7 +1066,6 @@ def build_pdf():
     story.append(t_bom)
     story.append(Spacer(1, 4))
 
-    # Procurement Options Breakdown
     story.append(Paragraph(
         "<b>Two-Tiered Procurement Strategy:</b><br/>"
         "• <b>Option A: Minimum Viable Procurement (MVP Bench Upgrade) — ₹8,214.00 INR:</b> Purchases strictly the YDLIDAR X2 (₹7,189), "
@@ -1068,104 +1091,69 @@ def build_pdf():
     ))
 
     # ==========================================
-    # SECTION 10: TECHNICAL ARCHITECTURE & FLOWCHARTS
+    # SECTION 10: TECHNICAL ARCHITECTURE & FLOWCHARTS (WITH VISUAL DIAGRAMS)
     # ==========================================
     story.append(Paragraph("10. Technical Architecture &amp; System Flowcharts", h1_style))
     story.append(Paragraph(
-        "The end-to-end cyber-physical architecture is structured into five verified operational workflows. "
+        "The end-to-end cyber-physical architecture is structured into five verified visual workflows. "
         "These diagrams eliminate ambiguity between currently implemented modules and future planned extensions:",
         body_style
     ))
 
-    # Diagram 1: Complete System Architecture Table/Flowchart
-    story.append(Paragraph("Diagram 1: Complete System Architecture (End-to-End Cyber-Physical Pipeline)", h2_style))
-    arch_flow_data = [
-        [
-            Paragraph("<b>PHYSICAL LAYER</b>", th_style),
-            Paragraph("<b>EMBEDDED ACQUISITION</b>", th_style),
-            Paragraph("<b>WIRELESS TELEMETRY</b>", th_style),
-            Paragraph("<b>GROUND ANALYTICS</b>", th_style),
-            Paragraph("<b>VISUALIZATION &amp; REPORT</b>", th_style)
-        ],
-        [
-            Paragraph("• Concrete Facade<br/>• Bridge Pier<br/>• Room Perimeter<br/>• Spalls &amp; Bulges<br/><i>Target Structure</i>", tb_style),
-            Paragraph("• TF-Luna (1D ToF)<br/>• YDLIDAR X2 (2D)<br/>• DFRobot Tilt Sensor<br/>• ESP32 dual-core<br/>• Checksum check", tb_style),
-            Paragraph("• 115200 Baud UART<br/>• Wi-Fi 802.11 b/g/n<br/>• UDP Socket stream<br/>• Binary packet sync<br/>• Dropped frame filter", tb_style),
-            Paragraph("• Rolling baseline (d_ref)<br/>• Deviation (Δd = d - d_ref)<br/>• Cavity rule (Δd ≥ +3.5cm)<br/>• Bulge rule (Δd ≤ -3.5cm)<br/>• Crack filter (|Δd| ≥ 1.5cm)", tb_style),
-            Paragraph("• 3D PLY Digital Twin<br/>• Streamlit UI (Port 8501)<br/>• PLY Forge WebGL engine<br/>• Defect severity log<br/>• PDF Inspection Report", tb_style)
-        ]
-    ]
-    t_aflow = Table(arch_flow_data, colWidths=[100, 105, 100, 110, 108])
-    t_aflow.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), C_PRIMARY),
-        ('BOX', (0,0), (-1,-1), 1, C_BORDER),
-        ('GRID', (0,0), (-1,-1), 0.5, C_BORDER),
-        ('BACKGROUND', (0,1), (-1,1), C_BG_LIGHT),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-        ('LEFTPADDING', (0,0), (-1,-1), 4),
-        ('RIGHTPADDING', (0,0), (-1,-1), 4),
-    ]))
-    story.append(t_aflow)
-    story.append(Spacer(1, 4))
+    # Flowchart 1 Image
+    f1_path = os.path.join(assets_dir, "flowchart_system_architecture.png")
+    if os.path.exists(f1_path):
+        story.append(Image(f1_path, width=500, height=188))
+        story.append(Paragraph("<b>Figure 7: Diagram 1 — End-to-End Cyber-Physical System Architecture</b>", caption_style))
+        story.append(Spacer(1, 4))
 
-    # Diagram 2 & 3: Subsystem Workflows
-    story.append(Paragraph("Diagrams 2 &amp; 3: Subsystem Operational State Machines", h2_style))
-    sub_flow_data = [
-        [
-            Paragraph("<b>Diagram 2: Aerial Acquisition Workflow (15377IDP01)</b>", meta_bold),
-            Paragraph("<b>Diagram 3: Ground Analytics Workflow (15377IDP02)</b>", meta_bold)
-        ],
-        [
-            Paragraph(
-                "<b>1. Boot &amp; Sync:</b> Initialize ESP32 GPIOs, UART1 (TF-Luna), UART2 (YDLIDAR), and Tilt interrupt.<br/>"
-                "<b>2. Frame Ingestion:</b> Read 9-byte TF-Luna packet; verify header bytes `0x59 0x59`.<br/>"
-                "<b>3. Checksum Validation:</b> Compute `(Σ B0..B7) & 0xFF`; if mismatch, DROP frame.<br/>"
-                "<b>4. Metrology Calibration:</b> Apply linear fit: <i>d_cal = 1.0228 · d_raw + 3.20 cm</i>.<br/>"
-                "<b>5. Tilt Compensation:</b> Sample tilt angle θ; compute: <i>d_true = d_cal · cos(θ)</i>.<br/>"
-                "<b>6. Median Filter:</b> Buffer N=5 readings; output median to suppress optical outliers.<br/>"
-                "<b>7. Telemetry Transmission:</b> Format UDP datagram: `[Timestamp, d_true, θ, Amplitude]`; transmit.",
-                callout_style
-            ),
-            Paragraph(
-                "<b>1. Packet Ingestion:</b> Receive UDP datagram on port 5005; parse payload.<br/>"
-                "<b>2. Baseline Computation:</b> Calculate window mean `d_ref` over rolling window.<br/>"
-                "<b>3. Residual Delta:</b> Calculate geometric deviation: <i>Δd = d_meas - d_ref</i>.<br/>"
-                "<b>4. Defect Classification:</b><br/>"
-                "   • If <i>Δd ≥ +3.5 cm</i> → Flag <b>Spalling Cavity</b> (recessed into wall).<br/>"
-                "   • If <i>Δd ≤ -3.5 cm</i> → Flag <b>Structural Bulge</b> (delamination).<br/>"
-                "   • If <i>|Δd| ≥ 1.5 cm vs neighbors</i> → Flag <b>Crack Indication</b>.<br/>"
-                "<b>5. Spatial Projection:</b> Map to global 3D vector: P_global = P_sensor + R_tilt · [d_true, 0, 0]ᵀ.<br/>"
-                "<b>6. WebGL Digital Twin:</b> Push vertex buffer to PLY Forge GPU canvas; render room twin.<br/>"
-                "<b>7. Automated Audit:</b> Output timestamped defect coordinate log &amp; PDF report.",
-                callout_style
-            )
+    # Flowcharts 2 & 3 Side by Side
+    f2_path = os.path.join(assets_dir, "flowchart_aerial_acquisition.png")
+    f3_path = os.path.join(assets_dir, "flowchart_ground_analytics.png")
+    if os.path.exists(f2_path) and os.path.exists(f3_path):
+        f23_imgs = [
+            [
+                Image(f2_path, width=248, height=105),
+                Image(f3_path, width=265, height=105)
+            ],
+            [
+                Paragraph("<b>Figure 8(a): Diagram 2 — Aerial Acquisition Workflow</b>", caption_style),
+                Paragraph("<b>Figure 8(b): Diagram 3 — Ground Analytics Decision Tree</b>", caption_style)
+            ]
         ]
-    ]
-    t_sflow = Table(sub_flow_data, colWidths=[260, 263])
-    t_sflow.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), C_BG_LIGHT),
-        ('BOX', (0,0), (-1,-1), 1, C_BORDER),
-        ('LINEBELOW', (0,0), (-1,0), 1, C_SECONDARY),
-        ('LINEAFTER', (0,0), (0,-1), 0.8, C_BORDER),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('LEFTPADDING', (0,0), (-1,-1), 6),
-        ('RIGHTPADDING', (0,0), (-1,-1), 6),
-    ]))
-    story.append(t_sflow)
-    story.append(Spacer(1, 4))
+        t_f23 = Table(f23_imgs, colWidths=[252, 271])
+        t_f23.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 1),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+        ]))
+        story.append(t_f23)
+        story.append(Spacer(1, 4))
 
-    story.append(Paragraph("Diagrams 4 &amp; 5: Electrical Architecture &amp; Phased Testing Pipeline", h2_style))
-    story.append(Paragraph(
-        "• <b>Diagram 4 (Wiring):</b> 3S 11.1V LiPo → XT60 → PDB → 4x 30A ESCs → 4x Motors; PDB 11.1V → 5V 5A UBEC → 5.0V bus "
-        "(Branch A: TF-Luna 70mA; Branch B: YDLIDAR X2 500mA; Branch C: ESP32 Vin 200mA). TF-Luna to UART1 (GPIO 16/17); "
-        "YDLIDAR X2 to UART2 (GPIO 25/26); Tilt Sensor to GPIO 34. ESP32 Wi-Fi transmits UDP to Ground Base.<br/>"
-        "• <b>Diagram 5 (Testing Pipeline):</b> Hardware Procurement → Benchtop Electrical Verification → Universal Sensor Calibration → "
-        "Static Testbed Validation → Controlled Linear Motion Testing → Silicone Vibration Damper Tuning → Drone Airframe Integration → "
-        "Tethered Hover Flight Trials → Live Wireless Telemetry Certification → End-to-End Physical Structural Scan → Faculty Demonstration.",
-        callout_style
-    ))
+    # Flowcharts 4 & 5 Side by Side
+    f4_path = os.path.join(assets_dir, "flowchart_power_wiring.png")
+    f5_path = os.path.join(assets_dir, "flowchart_testing_roadmap.png")
+    if os.path.exists(f4_path) and os.path.exists(f5_path):
+        f45_imgs = [
+            [
+                Image(f4_path, width=248, height=105),
+                Image(f5_path, width=265, height=105)
+            ],
+            [
+                Paragraph("<b>Figure 9(a): Diagram 4 — Power &amp; Signal Architecture</b>", caption_style),
+                Paragraph("<b>Figure 9(b): Diagram 5 — Phased Testing Roadmap</b>", caption_style)
+            ]
+        ]
+        t_f45 = Table(f45_imgs, colWidths=[252, 271])
+        t_f45.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 1),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+        ]))
+        story.append(t_f45)
+        story.append(Spacer(1, 4))
 
     # ==========================================
     # SECTION 11: FUTURE IMPLEMENTATION ROADMAP

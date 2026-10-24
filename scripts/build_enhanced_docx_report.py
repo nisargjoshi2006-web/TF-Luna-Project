@@ -2,8 +2,8 @@ import os
 import sys
 import docx
 from docx.shared import Inches, Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 
@@ -146,7 +146,7 @@ def build_docx():
     p_box_run.font.size = Pt(9.5)
     p_box_run.font.italic = True
 
-    # Collage Image
+    # Collage Image on Cover
     room_mesh = os.path.join(assets_dir, "room_mesh_labeled.png")
     if os.path.exists(room_mesh):
         p_cimg = doc.add_paragraph()
@@ -180,6 +180,20 @@ def build_docx():
         p.paragraph_format.space_before = Pt(10)
         p.paragraph_format.space_after = Pt(3)
         p.paragraph_format.keep_with_next = True
+
+    def add_figure(img_path, caption_text, width_inches=6.0):
+        if os.path.exists(img_path):
+            p_img = doc.add_paragraph()
+            p_img.add_run().add_picture(img_path, width=Inches(width_inches))
+            p_img.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            p_img.paragraph_format.space_after = Pt(2)
+            p_cap = doc.add_paragraph()
+            r_cap = p_cap.add_run(caption_text)
+            r_cap.font.size = Pt(8.5)
+            r_cap.font.italic = True
+            r_cap.font.color.rgb = c_muted
+            p_cap.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            p_cap.paragraph_format.space_after = Pt(8)
 
     # ================= SECTION 1 =================
     add_sec_heading("1. Executive Summary")
@@ -280,6 +294,12 @@ def build_docx():
         "• Verified Physical Defect Segmentation: Accurately rendered 4.8m × 4.2m room with 65 cm inward Almari bulge and 60 cm outward Gate recess.\n"
         "• Multi-Tab Streamlit Dashboard: 5 operational tabs for telemetry, profiles, calibration, PLY Forge WebGL, and room metrology."
     )
+
+    # Figures for Section 4 (Physical Scan Photos and 2D Profile)
+    p_bench1 = os.path.join(assets_dir, "physical_scan_bench_1.jpg")
+    p_prof = os.path.join(assets_dir, "pptx2_ground_s8_img2.jpg")
+    add_figure(p_bench1, "Figure 4(a): Physical Sensor Bench Testbed & Measuring Tape Alignment", width_inches=4.5)
+    add_figure(p_prof, "Figure 4(b): Ground Subsystem 2D Structural Profile with Baseline & Anomaly Residuals", width_inches=6.0)
 
     # Status Matrix Table
     add_sub_heading("Formal Subsystem Implementation Status Matrix")
@@ -382,11 +402,14 @@ def build_docx():
 
     # Hardware Images in DOCX
     yd_list = os.path.join(assets_dir, "ydlidar_x2_listing.png")
-    if os.path.exists(yd_list):
-        p_yd = doc.add_paragraph()
-        p_yd.add_run().add_picture(yd_list, width=Inches(5.5))
-        p_cap = doc.add_paragraph()
-        p_cap.add_run("Figure 2: YDLIDAR X2 360° 2D Laser Range Scanner Product Listing (Reference Price: ₹7,189 incl. GST)").font.size = Pt(8.5)
+    yd_specs = os.path.join(assets_dir, "ydlidar_x2_specs.png")
+    yd_feat = os.path.join(assets_dir, "ydlidar_x2_features.png")
+    dr_air = os.path.join(assets_dir, "drone_airframe.png")
+
+    add_figure(yd_list, "Figure 5(a): YDLIDAR X2 360° 2D Laser Range Scanner Product Listing (Ref: ₹7,189 incl. GST)", width_inches=5.8)
+    add_figure(yd_specs, "Figure 5(b): YDLIDAR X2 Technical Specification Table (3,000 pts/s, 7 Hz, 0.12–8m range)", width_inches=5.8)
+    add_figure(yd_feat, "Figure 5(c): YDLIDAR X2 Core Features & Autonomous Mapping Applications", width_inches=5.8)
+    add_figure(dr_air, "Figure 5(d): F450 Development Quadcopter Candidate Airframe with Silicone Damping Deck", width_inches=4.2)
 
     # ================= SECTION 7 =================
     add_sec_heading("7. Hardware Integration & Compatibility Study")
@@ -496,36 +519,21 @@ def build_docx():
     add_sec_heading("10. Technical Architecture & System Flowcharts")
     doc.add_paragraph(
         "The end-to-end cyber-physical architecture is structured into five verified operational workflows. "
-        "These diagrams eliminate ambiguity between currently implemented modules and future planned extensions:\n\n"
-        "Diagram 1: Complete System Architecture:\n"
-        "Physical Target (Concrete Facade, Bridge Pier, Spalls & Bulges) → Embedded Acquisition (TF-Luna 1D ToF, YDLIDAR X2 2D, DFRobot Tilt Sensor, ESP32 dual-core, Checksum validation) → "
-        "Wireless Telemetry (115200 Baud UART, Wi-Fi 802.11 b/g/n, UDP Socket stream, Dropped frame filter) → "
-        "Ground Analytics (Rolling baseline d_ref, Deviation Δd, Cavity rule Δd ≥ +3.5cm, Bulge rule Δd ≤ -3.5cm, Crack filter |Δd| ≥ 1.5cm) → "
-        "Visualization & Audit (3D PLY Digital Twin, Streamlit UI Port 8501, PLY Forge WebGL engine, Defect severity log, PDF Inspection Report).\n\n"
-        "Diagram 2: Aerial Acquisition Workflow (15377IDP01):\n"
-        "1. Boot & Sync: Initialize ESP32 GPIOs, UART1 (TF-Luna), UART2 (YDLIDAR), and Tilt interrupt.\n"
-        "2. Frame Ingestion: Read 9-byte TF-Luna packet; verify header bytes 0x59 0x59.\n"
-        "3. Checksum Validation: Compute (Σ B0..B7) & 0xFF; if mismatch, DROP frame.\n"
-        "4. Metrology Calibration: Apply linear fit: d_cal = 1.0228 · d_raw + 3.20 cm.\n"
-        "5. Tilt Compensation: Sample tilt angle θ; compute: d_true = d_cal · cos(θ).\n"
-        "6. Median Filter: Buffer N=5 readings; output median to suppress optical outliers.\n"
-        "7. Telemetry Transmission: Format UDP datagram: [Timestamp, d_true, θ, Amplitude]; transmit.\n\n"
-        "Diagram 3: Ground Analytics Workflow (15377IDP02):\n"
-        "1. Packet Ingestion: Receive UDP datagram on port 5005; parse payload.\n"
-        "2. Baseline Computation: Calculate window mean d_ref over rolling window.\n"
-        "3. Residual Delta: Calculate geometric deviation: Δd = d_meas - d_ref.\n"
-        "4. Defect Classification: Δd ≥ +3.5 cm (Spall Cavity); Δd ≤ -3.5 cm (Structural Bulge); |Δd| ≥ 1.5 cm vs neighbors (Crack Indication).\n"
-        "5. Spatial Projection: Map to global 3D vector: P_global = P_sensor + R_tilt · [d_true, 0, 0]ᵀ.\n"
-        "6. WebGL Digital Twin: Push vertex buffer to PLY Forge GPU canvas; render room twin.\n"
-        "7. Automated Audit: Output timestamped defect coordinate log & PDF report.\n\n"
-        "Diagram 4: Physical Wiring & Power Architecture:\n"
-        "3S 11.1V LiPo → XT60 → PDB → 4x 30A ESCs → 4x Motors; PDB 11.1V → 5V 5A UBEC → 5.0V bus (TF-Luna 70mA; YDLIDAR X2 500mA; ESP32 Vin 200mA). "
-        "TF-Luna to UART1 (GPIO 16/17); YDLIDAR X2 to UART2 (GPIO 25/26); Tilt Sensor to GPIO 34. ESP32 Wi-Fi transmits UDP to Ground Base.\n\n"
-        "Diagram 5: Phased Testing Pipeline:\n"
-        "Hardware Procurement → Benchtop Electrical Verification → Universal Sensor Calibration → Static Testbed Validation → "
-        "Controlled Linear Motion Testing → Silicone Vibration Damper Tuning → Drone Airframe Integration → Tethered Hover Flight Trials → "
-        "Live Wireless Telemetry Certification → End-to-End Physical Structural Scan → Faculty Demonstration."
+        "These diagrams eliminate ambiguity between currently implemented modules and future planned extensions:"
     )
+
+    # Insert Flowcharts 1 to 5 into DOCX
+    f1 = os.path.join(assets_dir, "flowchart_system_architecture.png")
+    f2 = os.path.join(assets_dir, "flowchart_aerial_acquisition.png")
+    f3 = os.path.join(assets_dir, "flowchart_ground_analytics.png")
+    f4 = os.path.join(assets_dir, "flowchart_power_wiring.png")
+    f5 = os.path.join(assets_dir, "flowchart_testing_roadmap.png")
+
+    add_figure(f1, "Figure 7: Diagram 1 — End-to-End Cyber-Physical System Architecture", width_inches=6.2)
+    add_figure(f2, "Figure 8(a): Diagram 2 — Aerial Embedded Acquisition Workflow (Team 1)", width_inches=5.8)
+    add_figure(f3, "Figure 8(b): Diagram 3 — Ground Analytics Decision Tree & Anomaly Classifier (Team 2)", width_inches=5.8)
+    add_figure(f4, "Figure 9(a): Diagram 4 — Electrical Power & Signal Distribution Architecture", width_inches=5.8)
+    add_figure(f5, "Figure 9(b): Diagram 5 — Phased Implementation & Flight Testing Roadmap", width_inches=6.2)
 
     # ================= SECTION 11 =================
     add_sec_heading("11. Future Work & Phased Implementation Roadmap")
@@ -677,7 +685,7 @@ def build_docx():
     )
 
     doc.save(DOCX_FILENAME)
-    print(f"Successfully generated DOCX report: {DOCX_FILENAME}")
+    print(f"Successfully generated DOCX report with flowcharts and photos: {DOCX_FILENAME}")
 
 if __name__ == "__main__":
     build_docx()
