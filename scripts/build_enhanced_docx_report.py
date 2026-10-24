@@ -43,18 +43,17 @@ def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
 def build_docx():
     doc = docx.Document()
 
-    # Set Margins (0.6 inch)
-    sections = doc.sections
-    for section in sections:
-        section.top_margin = Inches(0.6)
-        section.bottom_margin = Inches(0.6)
-        section.left_margin = Inches(0.6)
-        section.right_margin = Inches(0.6)
+    # Set Margins (0.7 inch)
+    for section in doc.sections:
+        section.top_margin = Inches(0.7)
+        section.bottom_margin = Inches(0.7)
+        section.left_margin = Inches(0.7)
+        section.right_margin = Inches(0.7)
 
     # Styles
     normal_style = doc.styles['Normal']
     normal_style.font.name = 'Calibri'
-    normal_style.font.size = Pt(10)
+    normal_style.font.size = Pt(11)
     normal_style.font.color.rgb = RGBColor(0x1E, 0x29, 0x3B)
 
     # Colors
@@ -63,28 +62,90 @@ def build_docx():
     c_teal = RGBColor(0x0D, 0x94, 0x88)
     c_muted = RGBColor(0x64, 0x74, 0x8B)
 
+    def add_p(text, bold=False, italic=False, font_size=11, color=None, space_after=4, align=WD_PARAGRAPH_ALIGNMENT.LEFT, line_spacing=1.15):
+        p = doc.add_paragraph()
+        p.alignment = align
+        p.paragraph_format.space_after = Pt(space_after)
+        p.paragraph_format.line_spacing = line_spacing
+        run = p.add_run(text)
+        run.bold = bold
+        run.italic = italic
+        run.font.size = Pt(font_size)
+        if color:
+            run.font.color.rgb = color
+        return p
+
+    def add_h1(text):
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(14)
+        p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.keep_with_next = True
+        run = p.add_run(text)
+        run.bold = True
+        run.font.size = Pt(16)
+        run.font.color.rgb = c_primary
+        return p
+
+    def add_h2(text):
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(10)
+        p.paragraph_format.space_after = Pt(3)
+        p.paragraph_format.keep_with_next = True
+        run = p.add_run(text)
+        run.bold = True
+        run.font.size = Pt(13)
+        run.font.color.rgb = c_navy
+        return p
+
+    def add_bullet(bold_prefix, text):
+        p = doc.add_paragraph(style='List Bullet')
+        p.paragraph_format.space_after = Pt(3)
+        p.paragraph_format.line_spacing = 1.15
+        run1 = p.add_run(bold_prefix)
+        run1.bold = True
+        run1.font.size = Pt(11)
+        run2 = p.add_run(text)
+        run2.font.size = Pt(11)
+        return p
+
+    def add_callout(text, title="NOTE / ARCHITECTURAL PRINCIPLE"):
+        tbl = doc.add_table(rows=1, cols=1)
+        tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+        cell = tbl.cell(0, 0)
+        set_cell_background(cell, "F0FDF4")
+        set_cell_margins(cell, top=140, bottom=140, left=200, right=200)
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_after = Pt(2)
+        r_head = p.add_run(f"[{title}]\n")
+        r_head.bold = True
+        r_head.font.size = Pt(10)
+        r_head.font.color.rgb = RGBColor(0x05, 0x96, 0x69)
+        r_body = p.add_run(text)
+        r_body.font.size = Pt(10)
+        r_body.italic = True
+        doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+    def add_caption(text):
+        p = doc.add_paragraph()
+        p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p.paragraph_format.space_after = Pt(6)
+        run = p.add_run(text)
+        run.italic = True
+        run.font.size = Pt(9.5)
+        run.font.color.rgb = c_muted
+        return p
+
     # ================= COVER PAGE =================
     vit_logo = os.path.join(assets_dir, "vit_logo.png")
     if os.path.exists(vit_logo):
         p_logo = doc.add_paragraph()
         p_logo.add_run().add_picture(vit_logo, width=Inches(2.2))
-        p_logo.paragraph_format.space_after = Pt(8)
+        p_logo.paragraph_format.space_after = Pt(6)
 
-    p_title = doc.add_paragraph()
-    run_title = p_title.add_run("AI IN STRUCTURAL HEALTH MONITORING FOR PREDICTIVE MAINTENANCE AND CONTINUOUS SAFETY ASSURANCE")
-    run_title.bold = True
-    run_title.font.size = Pt(18)
-    run_title.font.color.rgb = c_navy
-    p_title.paragraph_format.space_after = Pt(4)
+    add_p("AI IN STRUCTURAL HEALTH MONITORING FOR PREDICTIVE MAINTENANCE AND CONTINUOUS SAFETY ASSURANCE", bold=True, font_size=20, color=c_navy, space_after=4)
+    add_p("Comprehensive IDP Progress Report, Previous MDP Integration, Dual-Platform Deployment (Aerial Drone & Smart 4WD Car), Hardware Upgrade & Implementation Plan", bold=True, font_size=12, color=c_primary, space_after=12)
 
-    p_sub = doc.add_paragraph()
-    run_sub = p_sub.add_run("Comprehensive IDP Progress Report, Previous MDP Integration, Hardware Upgrade, Procurement Budget & Future Implementation Plan")
-    run_sub.bold = True
-    run_sub.font.size = Pt(11)
-    run_sub.font.color.rgb = c_primary
-    p_sub.paragraph_format.space_after = Pt(12)
-
-    # Meta Table
+    # Academic Meta Table
     meta_table = doc.add_table(rows=4, cols=2)
     meta_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(meta_table)
@@ -128,564 +189,444 @@ def build_docx():
 
     for row in meta_table.rows:
         for cell in row.cells:
-            set_cell_margins(cell, top=120, bottom=120, left=150, right=150)
+            set_cell_margins(cell, top=80, bottom=80, left=120, right=120)
+            for p in cell.paragraphs:
+                p.paragraph_format.line_spacing = 1.15
+                for run in p.runs:
+                    run.font.size = Pt(9.5)
 
-    doc.add_paragraph().paragraph_format.space_after = Pt(10)
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
-    # Executive Box
-    p_box = doc.add_paragraph()
-    p_box_run = p_box.add_run(
-        "EXECUTIVE SCOPE SUMMARY: This document presents the complete formal engineering review for BACSE291. "
-        "It provides an exhaustive, evidence-based technical synthesis connecting our prior Multidisciplinary Project "
-        "(MDP: PLY Forge 3D Point Cloud Processor) to our current Innovative Design Project (IDP). It articulates the completed "
-        "aerial acquisition and ground analytics benchmarks, evaluates identified physical scanning constraints (sensor jitter, "
-        "manual dragging noise, tilt elongation, motor vibration), justifies essential hardware upgrades (YDLIDAR X2 360° LiDAR, "
-        "DFRobot Gravity 360° Tilt Sensor, F450 Quadcopter & 3S LiPo), establishes an itemized ₹27,124 INR procurement budget with contingency, "
-        "and outlines a rigorous 7-phase future roadmap toward autonomous structural health monitoring (SHM)."
+    add_callout(
+        "This document presents the complete formal engineering review for BACSE291. It provides an exhaustive, evidence-based "
+        "technical synthesis connecting our prior Multidisciplinary Project (MDP: PLY Forge 3D Point Cloud Processor) to our "
+        "current Innovative Design Project (IDP). It details the verified aerial acquisition and ground analytics benchmarks, "
+        "evaluates identified scanning constraints (sensor jitter, manual dragging noise, tilt elongation, motor vibration), "
+        "presents our Dual-Platform Deployment Strategy (Primary Autonomous Quadcopter Drone vs. Contingency Smart 4WD Ground Robotic Car with Optical Wheel Encoders), "
+        "justifies essential hardware upgrades (YDLIDAR X2 360° LiDAR, DFRobot Gravity 360° Tilt Sensor, F450 Quadcopter & 3S LiPo), "
+        "establishes an itemized INR 28,874.00 procurement budget with contingency, and outlines a rigorous 7-phase future roadmap toward "
+        "autonomous structural health monitoring (SHM).",
+        title="EXECUTIVE REPORT SUMMARY & SCOPE"
     )
-    p_box_run.font.size = Pt(9.5)
-    p_box_run.font.italic = True
-
-    # Collage Image on Cover
-    room_mesh = os.path.join(assets_dir, "room_mesh_labeled.png")
-    if os.path.exists(room_mesh):
-        p_cimg = doc.add_paragraph()
-        p_cimg.add_run().add_picture(room_mesh, width=Inches(6.2))
-        p_cimg.paragraph_format.space_after = Pt(2)
-        p_cap = doc.add_paragraph()
-        r_cap = p_cap.add_run("Figure 1: Implemented 3D Digital Twin with Inward Almari Bulge (Orange) & Outward Gate Recess (Green)")
-        r_cap.font.size = Pt(8.5)
-        r_cap.font.italic = True
-        r_cap.font.color.rgb = c_muted
 
     doc.add_page_break()
 
-    # ================= HELPER FOR HEADINGS =================
-    def add_sec_heading(title):
-        p = doc.add_paragraph()
-        r = p.add_run(title)
-        r.bold = True
-        r.font.size = Pt(13)
-        r.font.color.rgb = c_primary
-        p.paragraph_format.space_before = Pt(14)
-        p.paragraph_format.space_after = Pt(4)
-        p.paragraph_format.keep_with_next = True
-
-    def add_sub_heading(title):
-        p = doc.add_paragraph()
-        r = p.add_run(title)
-        r.bold = True
-        r.font.size = Pt(11)
-        r.font.color.rgb = c_navy
-        p.paragraph_format.space_before = Pt(10)
-        p.paragraph_format.space_after = Pt(3)
-        p.paragraph_format.keep_with_next = True
-
-    def add_figure(img_path, caption_text, width_inches=6.0):
-        if os.path.exists(img_path):
-            p_img = doc.add_paragraph()
-            p_img.add_run().add_picture(img_path, width=Inches(width_inches))
-            p_img.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            p_img.paragraph_format.space_after = Pt(2)
-            p_cap = doc.add_paragraph()
-            r_cap = p_cap.add_run(caption_text)
-            r_cap.font.size = Pt(8.5)
-            r_cap.font.italic = True
-            r_cap.font.color.rgb = c_muted
-            p_cap.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            p_cap.paragraph_format.space_after = Pt(8)
-
-    # ================= SECTION 1 =================
-    add_sec_heading("1. Executive Summary")
-    doc.add_paragraph(
+    # ================= SECTION 1: EXECUTIVE SUMMARY =================
+    add_h1("1. Executive Summary")
+    add_p(
         "Civil infrastructures—including high-rise exterior facades, highway bridge piers, industrial cooling towers, and commercial structural "
         "enclosures—suffer continuous degradation caused by thermal expansion, foundation settling, seismic loads, and moisture ingress. "
         "Conventional manual inspection relies heavily on scaffolding, cherry-pickers, and human tactile assessment, exposing personnel to severe "
         "fall hazards while suffering from subjective qualitative records and high labor costs. This joint project establishes an autonomous, "
-        "sensor-driven Cyber-Physical Structural Health Monitoring (SHM) ecosystem partitioned into two tightly coupled subsystems:\n\n"
-        "• Aerial Subsystem (15377IDP01): Deploys close-range standoff Time-of-Flight (ToF) distance sensing via ESP32 microcontrollers, 100 Hz UART frame synchronization, checksum integrity checks, and real-time wireless telemetry to scan elevated, inaccessible structural envelopes.\n"
-        "• Ground Analytics Subsystem (15377IDP02): Ingests streaming distance metrics, executes adaptive baseline tracking, computes geometric residuals (Δd), flags structural anomalies (spalling cavities, structural bulges, cracks), reconstructs 3D digital twins, and generates automated compliance reports.\n\n"
-        "Key Progress to Date: The project has successfully delivered a physical ESP32 testbed operating a calibrated Benewake TF-Luna ToF sensor (regression model: y = 1.0228x + 3.20 cm, R²=1.0000, RMSE=±0.02 cm across 39.0 cm and 61.4 cm physical benchmarks), a 9,969-point 3D digital twin room reconstruction correctly segmenting an inward Almari bulge (+65 cm) and outward gate recess (-60 cm), and an interactive multi-tab Streamlit ground operations dashboard. Building directly upon our team's previous Multidisciplinary Project (MDP: PLY Forge), client-side WebGL point-cloud rendering and voxel compression algorithms provide zero-latency spatial visualization.\n\n"
-        "Critical Engineering Gap & Upgrade Justification: Manual sliding tests revealed ~2–3 cm measurement fluctuations resulting from hand-motion jitter and uncompensated sensor tilt. Furthermore, while the TF-Luna provides high-speed 1D ranging (100 Hz), reconstructing a complete spatial perimeter requires manual traverse or complex 2-axis articulation. To overcome these constraints, this report details the engineering justification and procurement budget for: (1) a YDLIDAR X2 360° 2D LiDAR (3,000 pts/sec, 7 Hz continuous planar slicing, 0.12–8.0 m range), (2) a DFRobot Gravity Digital 360° Tilt Sensor for dynamic pitch/roll angular correction (d_true = d_meas · cos θ), and (3) an F450 Quadcopter Drone development kit with a 3S 4200mAh LiPo battery to transition from bench testing to airborne structural inspection."
+        "sensor-driven Cyber-Physical Structural Health Monitoring (SHM) ecosystem partitioned into two tightly coupled subsystems:"
+    )
+    add_bullet("Aerial Subsystem (15377IDP01): ", "Deploys close-range standoff Time-of-Flight (ToF) distance sensing via ESP32 microcontrollers, 100 Hz UART frame synchronization, checksum integrity checks, and real-time wireless telemetry to scan elevated, inaccessible structural envelopes.")
+    add_bullet("Ground Analytics Subsystem (15377IDP02): ", "Ingests streaming distance metrics, executes adaptive baseline tracking, computes geometric residuals (Δd), flags structural anomalies (spalling cavities, structural bulges, cracks), reconstructs 3D digital twins, and generates automated compliance reports.")
+    add_p(
+        "Key Progress to Date: The project has successfully delivered a physical ESP32 testbed operating a calibrated Benewake TF-Luna ToF "
+        "sensor (regression model: y = 1.0228x + 3.20 cm, R²=1.0000, RMSE=±0.02 cm across 39.0 cm and 61.4 cm physical benchmarks), "
+        "a 9,969-point 3D digital twin room reconstruction correctly segmenting an inward Almari bulge (+65 cm) and outward gate recess (-60 cm), "
+        "and an interactive multi-tab Streamlit ground operations dashboard. Building directly upon our team's previous Multidisciplinary Project "
+        "(MDP: PLY Forge), client-side WebGL point-cloud rendering and voxel compression algorithms provide zero-latency spatial visualization."
+    )
+    add_p(
+        "Dual-Platform Deployment Strategy: To overcome physical limitations observed during testing (manual hand-sliding speed jitter "
+        "of ~2–3 cm, tilt beam elongation, and aerodynamic prop-wash turbulence near vertical walls), this project formulates a robust "
+        "Dual-Platform Strategy: (1) An Autonomous F450 Quadcopter Drone for elevated exterior facade and bridge inspection, and "
+        "(2) A Smart 4WD Ground Robotic Car equipped with dual optical wheel encoders as a high-precision, vibration-free contingency platform "
+        "for GPS-denied indoor environments, campus corridors, and high-precision linear wall sweeps."
     )
 
-    # ================= SECTION 2 =================
-    add_sec_heading("2. Project Background & Technical Objectives")
-    doc.add_paragraph(
+    # ================= SECTION 2: PROJECT BACKGROUND & OBJECTIVES =================
+    add_h1("2. Project Background & Technical Objectives")
+    add_p(
         "Modern structural maintenance requires transitioning from reactive repair to proactive, quantitative condition assessment. "
         "Structural surfaces exhibit subtle geometric precursors prior to catastrophic failure, including spalling cavities (concrete flaking away), "
         "sub-surface shear bulges (delamination or masonry buckling), and vertical shear cracks. However, acquiring high-fidelity geometric metrics "
         "from vertical facades presents extreme technical challenges: (1) Inaccessibility: Scaffolding is cost-prohibitive for routine monitoring; "
         "(2) Human Error: Manual ultrasonic gauges produce sparse records without a global spatial coordinate reference; and "
-        "(3) Terrestrial LiDAR Limitations: Commercial terrestrial laser scanners (TLS) cost >₹15,00,000 INR, weigh 5–10 kg, and suffer severe "
-        "occultation when viewing elevated facades from ground level.\n\n"
-        "Primary Technical Objectives of the Project:\n"
-        "• Obj 1 (Aerial Sensing): Develop a lightweight (<250g payload), low-power (<3W) aerial sensing payload combining optical ToF ranging and 360° planar LiDAR with active tilt sensing.\n"
-        "• Obj 2 (Embedded Validation): Implement real-time UART frame validation (0x59 0x59 header, 8-bit checksum) and on-chip median filtering at 100 Hz on dual-core ESP32 microcontrollers.\n"
-        "• Obj 3 (Telemetry & Ingestion): Establish high-throughput wireless data telemetry (Wi-Fi UDP / Serial RF) linking airborne sensors to the ground operations base station.\n"
-        "• Obj 4 (Geometric Defect Extraction): Formulate rule-based anomaly detection algorithms operating on rolling baseline residuals (Δd = d_meas - d_ref) to localize cavities (+Δd), bulges (-Δd), and crack spikes (|Δd| > T).\n"
-        "• Obj 5 (Spatial Digital Twin): Reconstruct wall-tagged 3D point clouds and room meshes (.PLY format) integrating previous MDP voxel-grid compression and WebGL GPU acceleration.\n"
-        "• Obj 6 (Predictive Baseline Maintenance): Formulate longitudinal health indexes tracking rate-of-deformation (∂(Δd)/∂t) across successive inspection cycles to forecast structural maintenance windows."
+        "(3) Dynamic Noise: Handheld measurements suffer from variable scan velocity and human tremor."
+    )
+    add_p("To systematically address these civil engineering challenges, our joint IDP team formulated 8 Formal Technical Objectives:")
+    add_bullet("Obj 1 (Real-Time Distance Acquisition): ", "Establish continuous 100 Hz ToF distance acquisition with binary frame parsing and checksum verification.")
+    add_bullet("Obj 2 (Metrological Accuracy): ", "Calibrate distance sensors against physical ground-truth benchmarks to achieve residual error ≤ ±1.0 cm.")
+    add_bullet("Obj 3 (Telemetry Synchronization): ", "Stream distance, signal amplitude, chip temperature, and timestamps from the mobile platform to the ground station.")
+    add_bullet("Obj 4 (Geometric Defect Classification): ", "Formulate mathematical residual algorithms (Δd = d_measured - d_baseline) to segment spalling cavities (Δd ≥ +3.5 cm), structural bulges (Δd ≤ -3.5 cm), and hairline cracks (|Δd| ≥ 1.5 cm).")
+    add_bullet("Obj 5 (3D Digital Twin Reconstruction): ", "Reconstruct dense spatial point clouds (.PLY format) capturing full room and facade geometries with millimetric fidelity.")
+    add_bullet("Obj 6 (Predictive Baseline Maintenance): ", "Formulate longitudinal deformation monitoring pipelines comparing periodic scans against healthy historical baselines.")
+    add_bullet("Obj 7 (Dual-Platform Field Adaptability): ", "Deploy an autonomous aerial quadcopter for exterior vertical facades and a Smart 4WD Ground Robotic Car with optical wheel encoders for GPS-denied indoor corridors.")
+    add_bullet("Obj 8 (Hardware Upgrade Integration): ", "Upgrade the single-point ToF sensor to a 360° planar LiDAR (YDLIDAR X2) and 360° tilt sensor for automated pitch/roll distortion compensation.")
+
+    # ================= SECTION 3: PREVIOUS MDP WORK (PLY FORGE) =================
+    add_h1("3. Previous MDP Work (PLY Forge: Point Cloud Processor) & Cross-Project Foundation")
+    add_p(
+        "During our prior Multidisciplinary Project (MDP), our team engineered PLY Forge: Point Cloud Processor "
+        "(Report: Multidisciplinary_project_Final_report.pdf; Codebase: ply (1).zip). PLY Forge is a high-performance, "
+        "fully client-side WebGL application built with HTML5, CSS3, and Vanilla JavaScript, requiring zero external server dependencies, "
+        "zero Node.js backend, and zero third-party 3D libraries (such as Three.js or BabylonJS). It runs natively in any modern web browser."
+    )
+    add_h2("Exhaustive Analysis of MDP Technical Features & Architecture:")
+    add_bullet("Binary & ASCII PLY Parser Engine: ", "Engineered a high-throughput client-side file parser leveraging JavaScript FileReader, ArrayBuffer, and DataView APIs. The parser reads standard Polygon File Format (.PLY) files in both ASCII and Binary Little-Endian / Big-Endian formats. It dynamically parses header elements (format, element vertex N, property float x/y/z, property uchar red/green/blue, element face M, end_header), loading hundreds of thousands of vertices into unified typed arrays.")
+    add_bullet("GPU-Accelerated WebGL 1.0 Rendering Pipeline: ", "Direct hardware rendering via a custom GLSL shader pipeline. A vertex shader executes 4x4 Model-View-Projection (MVP) matrix transforms, point-size attenuation based on camera distance, and per-vertex RGB interpolation. A fragment shader handles lighting and point shape rendering. The system utilizes the OES_element_index_uint WebGL extension to support 32-bit indices for large meshes exceeding 65,536 vertices.")
+    add_bullet("Voxel-Grid Spatial Hash Downsampling / Compression: ", "Implements spatial hashing dividing 3D bounding volumes into discrete cubic voxel cells of user-adjustable radius r. Vertices within each cell are quantized to their centroid, reducing file sizes by 60% to 90% while strictly preserving global geometric boundaries and surface contours.")
+    add_bullet("Circle Interior Point Removal (Boundary Extraction): ", "Interactive circular region filtering. The user clicks on the point cloud to define a 3D center (x0, y0, z0) and adjusts a radius slider R. The engine computes Euclidean distances d = sqrt((x-x0)² + (y-y0)² + (z-z0)²), culling all interior points (d < R) while preserving the boundary perimeter ring for hole and cavity perimeter analysis.")
+    add_bullet("Multiple Surface Meshing Algorithms: ", "Transforms unorganized point clouds into polygonal surface meshes using: (1) Delaunay 2.5D Triangulation (projects points onto best-fit plane and constructs Delaunay circumcircles); (2) Alpha Shapes (reconstructs non-convex boundaries and concave organic geometries via circumradius parameter α); (3) Convex Hull (computes minimal enclosing convex polygon wrapper); and (4) Grid Triangulation (generates regular quad-strip surface topology).")
+    add_bullet("Interactive Screen-Space Region Selection: ", "Frustum ray-casting converts 2D mouse drag rectangles into Normalized Device Coordinates (NDC) [-1, 1], allowing users to isolate point subsets, delete selected regions, or execute camera 'Zoom to Selection'.")
+    add_bullet("Standardized PLY Export: ", "Serializes modified vertices and reconstructed polygonal faces into compliant ASCII PLY format using Blob and URL.createObjectURL(), enabling seamless export to CAD/GIS tools.")
+
+    # Embedded MDP Screenshots
+    mdp_s1 = os.path.join(assets_dir, "mdp_ply_forge_screenshot1.jpg")
+    mdp_s2 = os.path.join(assets_dir, "mdp_ply_forge_screenshot2.jpg")
+    if os.path.exists(mdp_s1) and os.path.exists(mdp_s2):
+        p_img1 = doc.add_paragraph()
+        p_img1.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_img1.add_run().add_picture(mdp_s1, width=Inches(3.3))
+        p_img1.add_run("   ")
+        p_img1.add_run().add_picture(mdp_s2, width=Inches(3.3))
+        add_caption("Figure 2: Prior MDP Deliverable — PLY Forge Point Cloud Processor UI (Left: Stanford Bunny Demo & Controls; Right: Delaunay Surface Meshing & Region Selection)")
+
+    add_h2("Cross-Project Synthesis: How MDP Directly Empowers the Current IDP:")
+    add_p(
+        "Our previous MDP work serves as the software visualization engine for the current IDP. Rather than building a 3D visualizer from scratch, "
+        "PLY Forge's WebGL rendering engine is directly embedded into the IDP Ground Operations Dashboard (Tab 4: PLY Forge WebGL Viewer). "
+        "When the mobile platform (Drone or Smart 4WD Car) streams LiDAR facade scans, PLY Forge provides zero-latency in-browser 3D rendering. "
+        "Furthermore, PLY Forge's voxel downsampling filters high-frequency sensor noise from dense scans, and its Delaunay 2.5D meshing enables "
+        "automated calculation of spalling cavity surface areas and volumetric concrete loss."
+    )
+    add_callout(
+        "What Was NOT in MDP vs. What IDP Adds: It is critical to note that MDP was purely an offline, file-based software tool "
+        "operating on pre-recorded static files and synthetic demos (Stanford Bunny). MDP had no physical hardware integration, no ToF or LiDAR sensors, "
+        "no serial telemetry, no mobile robotics, and no structural health defect classification. The current IDP bridges this gap by engineering "
+        "the physical acquisition testbed, real-time ESP32 FreeRTOS firmware, physical calibration (y = 1.0228x + 3.20 cm), autonomous aerial "
+        "and terrestrial robotic platforms, and automated civil structural anomaly classification algorithms.",
+        title="MDP VS. IDP COMPARISON & DELINEATION"
     )
 
-    # ================= SECTION 3 =================
-    add_sec_heading("3. Previous MDP Work (PLY Forge) & Cross-Project Relevance")
-    doc.add_paragraph(
-        "During the earlier Multidisciplinary Project (MDP), our team engineered PLY Forge: Point Cloud Processor, a high-performance, "
-        "fully client-side WebGL application designed to parse, visualize, filter, compress, and triangulate 3D point cloud datasets. "
-        "A rigorous audit of the MDP Final Report (`Multidisciplinary_project_Final_report.pdf`) and the codebase archive (`ply (1).zip` containing "
-        "`index.html`, `ply_processor.js`, and `README.md`) verifies the following operational capabilities and architectural foundation:\n\n"
-        "• Binary & ASCII PLY Ingestion: Engineered custom parsers utilizing JavaScript DataView, TextDecoder, and FileReader APIs to ingest Polygon File Format (.PLY) data supporting float32 coordinates, uint8 RGB color channels, and little/big-endian switching.\n"
-        "• Zero-Dependency WebGL 1.0 Pipeline: Operates completely native within standard web browsers without relying on external packages (Three.js, Three-PLYLoader, npm modules). Custom GLSL vertex and fragment shaders render point sprites with per-vertex color interpolation directly from GPU Float32Array buffers.\n"
-        "• Voxel-Grid Downsampling Compression: Implements spatial hashing dividing 3D bounding boxes into discrete voxel cubes of size s. Points within each voxel are averaged or quantized to their centroid using JavaScript Map structures, achieving 60%–85% file compression while preserving structural boundaries.\n"
-        "• Region Selection & Circle Filtering: Ray-casting and mouse-driven circle selection isolate specific structural regions, utilizing JavaScript Set structures for O(1) point indexing and deletion.\n"
-        "• Surface Reconstruction & Triangulation: Implements 2.5D Delaunay triangulation, convex hull, and grid-based surface meshing algorithms, converting unorganized point sets into continuous polygonal facet meshes.\n"
-        "• Standardized PLY Export: Generates compliant ASCII/Binary PLY files via client-side Blob and URL.createObjectURL() for immediate export into CAD or GIS environments."
+    # ================= SECTION 4: CURRENT IDP ARCHITECTURE & VERIFIED WORK =================
+    add_h1("4. Current IDP Architecture & Verified Work Completed")
+    add_p(
+        "The current IDP establishes a complete end-to-end cyber-physical pipeline spanning airborne/ground acquisition and ground-side "
+        "spatial analytics. The verified operational architecture and implemented subsystems are detailed below:"
     )
 
-    # MDP Table
-    t_mdp_doc = doc.add_table(rows=7, cols=4)
-    t_mdp_doc.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(t_mdp_doc)
+    idp_tab = doc.add_table(rows=2, cols=2)
+    idp_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(idp_tab)
 
-    headers = ["Previous MDP Capability", "Potential Use in Current IDP", "Required Modification / Adaptation", "Integration Status"]
-    for i, h in enumerate(headers):
-        cell = t_mdp_doc.rows[0].cells[i]
-        cell.paragraphs[0].add_run(h).bold = True
-        set_cell_background(cell, "1E3A8A")
-        cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    idp_cells = idp_tab.rows[0].cells
+    idp_cells[0].paragraphs[0].add_run("AERIAL SUBSYSTEM (15377IDP01) — IMPLEMENTED").bold = True
+    idp_cells[1].paragraphs[0].add_run("GROUND ANALYTICS (15377IDP02) — IMPLEMENTED").bold = True
+    set_cell_background(idp_cells[0], "F1F5F9")
+    set_cell_background(idp_cells[1], "F1F5F9")
 
-    mdp_rows = [
-        ("Client-Side WebGL 1.0 Point Cloud Rendering", "Real-time GPU rendering of LiDAR facade scans on Ground Station", "Adapt shader uniforms to render dynamic color ramps (Jet/Viridis) mapped to defect depth (Δd)", "Ready / Integrated in Tab 4"),
-        ("Voxel-Grid Downsampling Compression", "Compress dense LiDAR clouds (3,000 pts/s) before disk logging & cloud sync", "Tune voxel step (1–2 cm) to prevent smoothing out narrow cracks (<1.5 cm width)", "Algorithm Reusable"),
-        ("Binary & ASCII PLY Exporter", "Generate industry-standard .PLY digital twins from physical LiDAR room measurements", "Prepend wall semantic tags (North, South, East, West, Almari, Gate) into vertex headers", "Fully Functional"),
-        ("Circle-Based ROI Selection & Isolation", "Allow structural inspectors to click and isolate detected spalls or bulges for metrology", "Link selection directly to automated engineering report generator (area & volume calculation)", "In Progress"),
-        ("2.5D Delaunay & Grid Mesh Triangulation", "Convert sparse LiDAR scan slices into solid watertight structural surface models", "Requires dense planar profiles or multi-line scans from YDLIDAR X2 to form 2D manifolds", "Planned (Post-LiDAR)"),
-        ("Static File Loading Workflow (User Upload)", "Ground analytics dashboard stream ingestion", "Replace manual file picker with WebSocket / Serial byte buffer streaming parser", "Active Development")
-    ]
-
-    for row_idx, data in enumerate(mdp_rows):
-        row = t_mdp_doc.rows[row_idx + 1]
-        for col_idx, text in enumerate(data):
-            cell = row.cells[col_idx]
-            cell.paragraphs[0].add_run(text)
-            if row_idx % 2 == 1:
-                set_cell_background(cell, "F8FAFC")
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # ================= SECTION 4 =================
-    add_sec_heading("4. Current IDP Architecture & Verified Work Completed")
-    doc.add_paragraph(
-        "The current IDP establishes a complete end-to-end cyber-physical pipeline spanning airborne embedded acquisition and ground-side "
-        "spatial analytics. The verified operational architecture and implemented subsystems are detailed below:\n\n"
-        "Aerial Subsystem (15377IDP01) — Implemented:\n"
+    idp_r1 = idp_tab.rows[1].cells
+    idp_r1[0].paragraphs[0].add_run(
         "• Sensing Core: Benewake TF-Luna 850nm dToF sensor (<5g, 0.35W, 100 Hz, 2° FOV).\n"
         "• Embedded Controller: ESP32-WROOM-32 running custom C++ FreeRTOS firmware.\n"
-        "• UART Binary Framing: Strict state machine syncing to 0x59 0x59 preamble, extracting 2-byte distance, 2-byte amplitude, 2-byte chip temp, and validating 8-bit checksum: (Σ Bytes 0..7) & 0xFF == Byte 8.\n"
+        "• UART Binary Framing: Strict state machine syncing to 0x59 0x59 preamble, extracting 2-byte distance, 2-byte amplitude, 2-byte chip temp, and validating 8-bit checksum: (Sum Bytes 0..7) & 0xFF == Byte 8.\n"
         "• Two-Point Metrology Fit: Universal calibration equation y = 1.0228x + 3.20 cm derived from physical 39.0 cm and 61.4 cm benchmarks (residual RMSE = ±0.00 cm).\n"
         "• Signal Conditioning: On-chip running median filter (window size N=5) to eliminate single-sample optical dropouts.\n"
-        "• Data Handoff: 115200 baud USB-UART streaming with planned UDP telemetry.\n\n"
-        "Ground Analytics Subsystem (15377IDP02) — Implemented:\n"
+        "• Data Handoff: 115200 baud USB-UART streaming with planned UDP telemetry."
+    )
+    idp_r1[1].paragraphs[0].add_run(
         "• Live Telemetry Ingestion: Python serial/buffer reader ingesting calibrated distances.\n"
         "• Rolling Baseline Tracking: Window-mean baseline filter tracking surface contours.\n"
-        "• Rule-Based Anomaly Classifier: Cavity (Spall): Δd ≥ +3.5 cm (recessed into wall, colored Orange); Bulge (Buckle): Δd ≤ -3.5 cm (protruding outward, colored Orange); Crack Indication: |Δd| ≥ 1.5 cm vs adjacent neighbors.\n"
+        "• Rule-Based Anomaly Classifier:\n"
+        "  - Cavity (Spall): Δd ≥ +3.5 cm (recessed into wall, colored Orange).\n"
+        "  - Bulge (Buckle): Δd ≤ -3.5 cm (protruding outward, colored Orange).\n"
+        "  - Crack Indication: |Δd| ≥ 1.5 cm vs adjacent neighbors.\n"
         "• 3D Digital Twin Reconstructor: Generates 9,969-point spatial cloud (.PLY) with North/South/East/West wall tags.\n"
         "• Verified Physical Defect Segmentation: Accurately rendered 4.8m × 4.2m room with 65 cm inward Almari bulge and 60 cm outward Gate recess.\n"
         "• Multi-Tab Streamlit Dashboard: 5 operational tabs for telemetry, profiles, calibration, PLY Forge WebGL, and room metrology."
     )
 
-    # Figures for Section 4 (Physical Scan Photos and 2D Profile)
-    p_bench1 = os.path.join(assets_dir, "physical_scan_bench_1.jpg")
-    p_prof = os.path.join(assets_dir, "pptx2_ground_s8_img2.jpg")
-    add_figure(p_bench1, "Figure 4(a): Physical Sensor Bench Testbed & Measuring Tape Alignment", width_inches=4.5)
-    add_figure(p_prof, "Figure 4(b): Ground Subsystem 2D Structural Profile with Baseline & Anomaly Residuals", width_inches=6.0)
-
-    # Status Matrix Table
-    add_sub_heading("Formal Subsystem Implementation Status Matrix")
-    t_stat = doc.add_table(rows=12, cols=4)
-    t_stat.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(t_stat)
-
-    stat_headers = ["Subsystem & Feature", "Target Metric / Function", "Current Verification Status", "Supporting Evidence / Artifact"]
-    for i, h in enumerate(stat_headers):
-        cell = t_stat.rows[0].cells[i]
-        cell.paragraphs[0].add_run(h).bold = True
-        set_cell_background(cell, "1E3A8A")
-        cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-
-    stat_rows = [
-        ("TF-Luna Optical Ranging", "0.2m to 8.0m, 100 Hz, 850 nm ToF", "Implemented & Verified", "ESP32 UART bench testbed, CSV logs"),
-        ("UART Framing & Checksum", "0x59 0x59 sync, drop corrupt packets", "Implemented & Verified", "C++ firmware state machine in main.cpp"),
-        ("Two-Point Calibration Model", "y = 1.0228x + 3.20 cm (RMSE ±0.02cm)", "Implemented & Verified", "Bench measurements at 39.0cm & 61.4cm"),
-        ("Multi-Tab Operations Dashboard", "5-tab Streamlit UI (Port 8501)", "Implemented & Verified", "dashboard/app.py running on localhost"),
-        ("3D Digital Twin Generation", "9,969 points, wall tagging, PLY export", "Implemented & Verified", "room_mesh.ply & Open3D visualization"),
-        ("Almari / Gate Feature Isolation", "Distinguish ±60cm macro from ±3.5cm spalls", "Implemented & Verified", "3D room point cloud with Cyan/Orange/Green"),
-        ("Wi-Fi / UDP Wireless Telemetry", "ESP32 socket broadcast to PC base station", "In Progress / Bench Ready", "Firmware written; testing packet drop"),
-        ("Tilt Angle Dynamic Compensation", "d_true = d_meas · cos θ (pitch/roll)", "Design Finalized / Awaiting Sensor", "Mathematical derivation complete; sensor budgeted"),
-        ("360° Planar Surface Slicing", "3,000 pts/s horizontal perimeter sweep", "Planned Hardware Upgrade", "YDLIDAR X2 integration budgeted in Section 8"),
-        ("Full Drone Flight Structural Scan", "Autonomous airborne facade inspection", "Planned / Pending Airframe", "Airframe, LiPo & BEC budgeted in Section 8"),
-        ("AI Predictive Maintenance Model", "Longitudinal rate-of-deterioration forecasting", "Planned Extension", "Requires repeated multi-epoch inspection data")
-    ]
-
-    for row_idx, data in enumerate(stat_rows):
-        row = t_stat.rows[row_idx + 1]
-        for col_idx, text in enumerate(data):
-            cell = row.cells[col_idx]
-            cell.paragraphs[0].add_run(text)
-            if row_idx % 2 == 1:
-                set_cell_background(cell, "F8FAFC")
+    for row in idp_tab.rows:
+        for cell in row.cells:
+            set_cell_margins(cell, top=80, bottom=80, left=120, right=120)
+            for p in cell.paragraphs:
+                p.paragraph_format.line_spacing = 1.15
+                for run in p.runs:
+                    run.font.size = Pt(9.5)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
-    # ================= SECTION 5 =================
-    add_sec_heading("5. Current Engineering Challenges & Identified Gaps")
-    doc.add_paragraph(
-        "A rigorous analysis of the hardware test sessions and presentation records (BACSE291_Review1_Team1_Drone_AerialFinal.pptx "
-        "Slide 11 and BACSE291_Review1_Team2_Ground_OperationsFinal.pptx Slide 11) isolates several critical physical constraints "
-        "that must be addressed before field deployment:\n\n"
-        "1. Manual Sliding Jitter vs. Defect Threshold Overlap: During initial physical wall scans, the TF-Luna was enclosed in a portable "
-        "housing and manually slid along the wall. Uneven human sliding speed and hand tremor introduced ~2–3 cm measurement fluctuations. "
-        "Because real structural spalls have depths on the order of 2.5–4.0 cm, this hand-motion jitter directly overlaps with the defect detection "
-        "threshold (default T = ±3.5 cm), creating a severe risk of false positives or missed defects.\n\n"
-        "2. Tilt & Angular Beam Elongation: When the sensor is not held perfectly normal (perpendicular) to the surface, the laser beam "
-        "travels along the hypotenuse of the right triangle formed by the standoff distance and the surface plane. For an incidental tilt angle θ, "
-        "the measured distance elongates according to: d_meas = d_true / cos(θ). At a standoff distance of 200 cm, a modest 10° pitch or roll "
-        "causes a 3.1 cm artificial elongation—completely disguising a flat wall as a recessed cavity. Active tilt measurement is mandatory.\n\n"
-        "3. 1D Point-Sensing vs. Spatial Coverage Trade-Off: The TF-Luna is an ultra-narrow 1D single-point rangefinder (2° FOV). While ideal "
-        "for single-axis standoff maintenance, constructing a 2D horizontal contour or a 3D digital twin requires continuous physical translation. "
-        "If the sensor skips across a gap, entire defects are missed. A true 360° rotating LiDAR is required to capture continuous planar slices.\n\n"
-        "4. Airframe Prop-Wash & High-Frequency Motor Vibration: Brushless drone motors spinning at 8,000–12,000 RPM generate severe mechanical "
-        "vibrations in the 150–250 Hz band. Rigidly mounting optical sensors to the drone chassis causes optical defocusing, frame jitter, and premature "
-        "bearing wear on mechanical LiDAR turrets. Passive silicone damping mounts are required to isolate the sensing payload.\n\n"
-        "5. Absence of Longitudinal Defect History: Predictive maintenance requires observing geometric deformation rates over time (∂(Δd)/∂t). "
-        "Single-scan prototypes cannot differentiate between an ancient cosmetic irregularity and an actively progressing structural failure without "
-        "storing timestamped reference baselines for differential epoch subtraction."
-    )
+    # Embedded Photos: Room mesh + Hardware Setup
+    room_mesh = os.path.join(assets_dir, "room_mesh_labeled.png")
+    bench_setup = os.path.join(assets_dir, "hardware_bench_setup.png")
+    if os.path.exists(room_mesh) and os.path.exists(bench_setup):
+        p_mesh = doc.add_paragraph()
+        p_mesh.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_mesh.add_run().add_picture(room_mesh, width=Inches(3.8))
+        p_mesh.add_run("   ")
+        p_mesh.add_run().add_picture(bench_setup, width=Inches(2.7))
+        add_caption("Figure 3: Left: 3D Digital Twin Room Mesh with Almari Bulge (+65cm) & Gate Recess (-60cm); Right: Physical ESP32 + TF-Luna Testbed")
 
-    # ================= SECTION 6 =================
-    add_sec_heading("6. Proposed Hardware Upgrade & Technical Justification")
-    doc.add_paragraph(
-        "To systematically resolve the engineering gaps identified in Section 5, four hardware additions are proposed. "
-        "These selections are grounded in empirical datasheets, supplier availability in India, and the user-supplied reference images:\n\n"
-        "A. YDLIDAR X2 360° 2D Laser Range Scanner:\n"
-        "• Component Overview: Manufactured by EAI / YDLIDAR, the YDLIDAR X2 is a 360-degree two-dimensional LiDAR scanner utilizing "
-        "optical triangulation ranging. It integrates an infrared laser, an optical sensor, a custom DSP chip, and a 360° rotating motor turret. "
-        "Reference price from uploaded supplier listing: ₹7,189.00 INR (inclusive of 18% GST).\n"
-        "• Ranging Frequency: 3,000 points per second (3 kHz sample rate), delivering dense surface point distributions.\n"
-        "• Scanning Frequency: 5–8 Hz adaptive motor rotation (default 7 Hz = 7 full 360° revolutions per second).\n"
-        "• Angular Resolution: 0.6° to 0.9° per sample step, capturing fine structural perimeter details.\n"
-        "• Operating Range: 0.12 m to 8.0 m radius, perfectly matching indoor room scans and exterior standoff facades.\n"
-        "• Electrical Interface: 3.3V LVTTL UART (115200 baud), 4.8V–5.2V operating voltage, 350–500 mA operating current.\n"
-        "• Physical Dimensions & Mass: 60.5 mm × 60.3 mm × 97.0 mm, mass = ~150g (optomechanical assembly).\n\n"
-        "B. DFRobot Gravity Digital 360° Tilt Sensor:\n"
-        "• Component Overview: Model DFR0028 / Gravity Series. Reference price: ₹237.36 INR (current retail: ₹245.00 INR).\n"
-        "• Operating Principle: Internal ball-switch / inclination contact detecting tilt angle across 360° orientation.\n"
-        "• Electrical Interface: Standard 3-pin Gravity interface (Signal, VCC, GND), plug-and-play with ESP32 3.3V/5V digital GPIO.\n"
-        "• Role in Mathematical Correction: Enables firmware to apply the geometric correction factor: d_true = d_meas · cos(θ).\n"
-        "• Engineering Distinction: This sensor provides software-based trigonometric correction, not mechanical stabilization.\n\n"
-        "C. Upgraded Aerial Drone Platform (F450 Quadcopter Development Kit):\n"
-        "• Airframe: F450 Glass Fiber Quadcopter Frame equipped with four 2212 920KV/1000KV brushless DC motors, four 30A SimonK/BLHeli ESCs, and 1045 propellers.\n"
-        "• Total Thrust Capacity: 4 × 850g = 3,400g total thrust, providing a safe 2.8:1 thrust-to-weight ratio for an AUW of ~1,200g.\n"
-        "• Flight Controller: Pixhawk 2.4.8 32-bit Autopilot kit (with GPS, compass, and power module) supporting AltHold, Loiter, and automated waypoint lawnmower survey patterns.\n\n"
-        "D. Rechargeable Power System (3S LiPo Battery & Regulated BEC):\n"
-        "• Chemistry & Rating: Lithium Polymer (LiPo), 3S1P (3 cells in series), nominal voltage 11.1V (12.6V fully charged).\n"
-        "• Capacity & Discharge: 4200 mAh, 35C continuous discharge rate (peak discharge 70C), capable of delivering 147A continuous current.\n"
-        "• Connector: High-current XT60 gold-plated connector with JST-XH balance leads for safe multi-cell charging.\n"
-        "• Estimated Hover Flight Time: Calculated at ~16–18 minutes with full 250g sensor payload at 18A average hover current draw.\n"
-        "• SAFETY & VOLTAGE REGULATION MANDATE: Dedicated 5V 5A UBEC Step-Down Buck Converter stepping down 11.1V battery rail to a clean 5.0V bus with reverse polarity and transient protection.\n\n"
-        "E. Vibration Damping, Mounting Hardware & Wiring:\n"
-        "• Silicone Anti-Vibration Isolators: Dual-plate carbon fiber isolation deck suspended on four silicone rubber damping balls attenuating 150–250 Hz vibration by >18 dB.\n"
-        "• Custom Sensor Brackets: Lightweight 3D printed PETG mounting bracket orienting TF-Luna and YDLIDAR X2.\n"
-        "• Shielded Silicone Wiring: 22 AWG twisted-pair shielded signal cabling minimizing electromagnetic interference (EMI)."
-    )
+    # Embedded Photos: Physical Bench + Profile
+    scan1 = os.path.join(assets_dir, "physical_scan_bench_1.jpg")
+    profile2 = os.path.join(assets_dir, "pptx2_ground_s8_img2.jpg")
+    if os.path.exists(scan1) and os.path.exists(profile2):
+        p_pbench = doc.add_paragraph()
+        p_pbench.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_pbench.add_run().add_picture(scan1, width=Inches(2.8))
+        p_pbench.add_run("   ")
+        p_pbench.add_run().add_picture(profile2, width=Inches(3.7))
+        add_caption("Figure 4: Left: Physical Bench Measuring Tape Calibration Setup; Right: 2D Structural Residual Profile (Ground Station Tab 2)")
 
-    # Hardware Images in DOCX
-    yd_list = os.path.join(assets_dir, "ydlidar_x2_listing.png")
+    # ================= SECTION 5: CURRENT CHALLENGES & SMART 4WD CAR =================
+    add_h1("5. Current Challenges & The Contingency Smart 4WD Ground Robotic Car")
+    add_p(
+        "A rigorous empirical analysis of our physical scanning trials revealed several real-world operational challenges that led directly "
+        "to the formulation of our Dual-Platform Strategy:"
+    )
+    add_bullet("1. Manual Sliding Jitter vs. Defect Threshold Overlap: ", "During initial wall scanning, the TF-Luna was manually slid along the wall. Uneven human sliding speed and hand tremor introduced ~2–3 cm measurement fluctuations. Because true structural spalls have depths of 2.5–4.0 cm, hand-motion jitter directly overlaps with the detection threshold (default T = ±3.5 cm), creating false alarms.")
+    add_bullet("2. Tilt Beam Elongation: ", "When the sensor tilts by angle θ relative to the surface normal, the beam travels along the hypotenuse: d_meas = d_true / cos(θ). At a 200 cm standoff, a 10° pitch or roll causes a 3.1 cm artificial elongation—falsely mimicking a cavity.")
+    add_bullet("3. Drone Aerodynamic Constraints Indoors: ", "Flying an aerial drone indoors (corridors, classrooms, basements) presents severe challenges: lack of GPS lock, regulatory flight restrictions, and aerodynamic wall-effect suction (prop-wash turbulence pulling the drone into the wall when operating at <1.5 m standoff distances).")
+
+    add_h2("The Contingency Platform: Smart 4WD Robotic Car with Optical Wheel Encoders")
+    add_p(
+        "HOW WE WILL OPERATE IF WE DO NOT USE THE DRONE:\n"
+        "If indoor flight restrictions, prop-wash turbulence, or battery flight-time constraints prevent drone operation, the entire sensing array "
+        "is immediately deployed on our Smart 4WD Ground Robotic Car. The car transforms the system from an airborne inspector into an "
+        "ultra-stable, millimeter-precision terrestrial surface scanner:"
+    )
+    add_bullet("Hardware Architecture on the Car: ", "A 4-wheel drive robotic chassis equipped with four high-torque DC gear motors (1:48 gear ratio), an L298N/TB6612FNG Dual H-Bridge motor driver, and dual optical wheel encoders (20-slot slotted photo-interrupter disks). A rigid, telescoping vertical aluminum mast holds the TF-Luna ToF sensor and YDLIDAR X2 at adjustable heights (0.5 m to 2.0 m elevation).")
+    add_bullet("Closed-Loop Odometry & Speed Stabilization: ", "Unlike erratic human hand sliding, the ESP32 microcontroller executes a closed-loop PID cruise-control routine driving the car at an exact, vibration-free linear speed (e.g., constant 5.0 cm/sec). Wheel encoder pulses integrate exact linear distance traveled along the wall:\n    ΔX = N_ticks × [π × D_wheel / 20 slots]  (where D_wheel = 6.5 cm, giving ~1.02 mm resolution per tick).")
+    add_bullet("Dynamic Wall Spatial Coordinate Generation: ", "The car initializes at a designated corner origin datum: P_car(0) = (0, 0, Z_mast). As the car rolls parallel to the wall, every distance measurement d_meas(t) is stamped with its exact encoder X-coordinate:\n    X_point = X_encoder(t)\n    Y_point = d_meas(t) × cos(θ_tilt)  (perpendicular distance from wall)\n    Z_point = Z_mast (stepped in 10 cm or 20 cm vertical elevation bands for full-wall coverage).")
+    add_bullet("Key Advantages of the Smart Car: ", "(1) Zero Hand Jitter: Eliminates the 2–3 cm sliding noise completely; (2) Zero Prop-Wash: No aerodynamic turbulence near walls; (3) Extended Scan Endurance: Operates for 2–3 continuous hours on a 12V Li-ion pack (vs. 14 mins on drone); and (4) 100% Indoor Compliance: Safe to operate in any laboratory or classroom without flight clearance.")
+
+    # Embedded Car Diagram
+    car_diag = os.path.join(assets_dir, "flowchart_smart_car_operation.png")
+    if os.path.exists(car_diag):
+        p_car = doc.add_paragraph()
+        p_car.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_car.add_run().add_picture(car_diag, width=Inches(6.4))
+        add_caption("Figure 5: Contingency Platform — Smart 4WD Ground Robotic Car Scanning Architecture & Odometry Workflow")
+
+    # ================= SECTION 6: PROPOSED HARDWARE UPGRADE =================
+    add_h1("6. Proposed Hardware Upgrade & Technical Justification")
+    add_p("To achieve autonomous 3D facade digitisation and eliminate tilt and motion errors, four critical hardware upgrades are specified:")
+    add_bullet("1. YDLIDAR X2 360° 2D Laser Rangefinder (INR 7,189.00): ", "Replaces single-point ToF with a 360° rotating laser (3,000 samples/sec, 8.0 m range, 0.12 m blind zone, 7 Hz motor). Instead of scanning one point at a time, it acquires an entire 2D cross-sectional slice in 142 ms, capturing hundreds of surface points simultaneously.")
+    add_bullet("2. DFRobot Gravity Digital 360° Tilt Sensor (INR 245.00): ", "High-speed orientation sensor mounted coaxially with the LiDAR. Measures pitch (θ_p) and roll (θ_r) in real time. The ground software applies instant trigonometry: d_corrected = d_raw × cos(θ), completely eliminating the 3.1 cm false-cavity artifact.")
+    add_bullet("3. F450 Quadcopter Drone Airframe & Propulsion (INR 5,200.00): ", "Sturdy 450 mm glass-fiber/polyamide frame with four A2212 1000KV brushless motors, 30A SimonK ESCs, and 1045 propellers. Delivers 3,200 g total thrust against a 1,220 g all-up weight (2.6:1 thrust-to-weight ratio).")
+    add_bullet("4. High-Capacity 3S 11.1V 4200mAh LiPo Battery (INR 2,850.00): ", "Delivers 14–16 minutes of stable hovering flight, powering both the propulsion motors and the onboard avionics/LiDAR payload.")
+
+    # Embedded Hardware Upgrade Photos
+    yd_listing = os.path.join(assets_dir, "ydlidar_x2_listing.png")
     yd_specs = os.path.join(assets_dir, "ydlidar_x2_specs.png")
-    yd_feat = os.path.join(assets_dir, "ydlidar_x2_features.png")
-    dr_air = os.path.join(assets_dir, "drone_airframe.png")
+    drone_img = os.path.join(assets_dir, "drone_airframe.png")
+    features_img = os.path.join(assets_dir, "ydlidar_x2_features.png")
 
-    add_figure(yd_list, "Figure 5(a): YDLIDAR X2 360° 2D Laser Range Scanner Product Listing (Ref: ₹7,189 incl. GST)", width_inches=5.8)
-    add_figure(yd_specs, "Figure 5(b): YDLIDAR X2 Technical Specification Table (3,000 pts/s, 7 Hz, 0.12–8m range)", width_inches=5.8)
-    add_figure(yd_feat, "Figure 5(c): YDLIDAR X2 Core Features & Autonomous Mapping Applications", width_inches=5.8)
-    add_figure(dr_air, "Figure 5(d): F450 Development Quadcopter Candidate Airframe with Silicone Damping Deck", width_inches=4.2)
+    if os.path.exists(yd_listing) and os.path.exists(yd_specs):
+        p_h1 = doc.add_paragraph()
+        p_h1.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_h1.add_run().add_picture(yd_listing, width=Inches(3.3))
+        p_h1.add_run("   ")
+        p_h1.add_run().add_picture(yd_specs, width=Inches(3.3))
+        add_caption("Figure 6(a): Left: YDLIDAR X2 Robu.in Listing (INR 7,189); Right: Technical Specifications")
 
-    # ================= SECTION 7 =================
-    add_sec_heading("7. Hardware Integration & Compatibility Study")
-    doc.add_paragraph(
-        "A rigorous engineering compatibility analysis was conducted to map voltage levels, current budgets, communication protocols, "
-        "and physical interfaces across all system components. The verified compatibility matrix is presented below:"
-    )
+    if os.path.exists(drone_img) and os.path.exists(features_img):
+        p_h2 = doc.add_paragraph()
+        p_h2.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_h2.add_run().add_picture(drone_img, width=Inches(3.3))
+        p_h2.add_run("   ")
+        p_h2.add_run().add_picture(features_img, width=Inches(3.3))
+        add_caption("Figure 6(b): Left: F450 Quadcopter Airframe; Right: YDLIDAR X2 Dimensional Drawing")
 
-    t_comp_doc = doc.add_table(rows=8, cols=6)
-    t_comp_doc.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(t_comp_doc)
+    # ================= SECTION 7: HARDWARE INTEGRATION & COMPATIBILITY =================
+    add_h1("7. Hardware Integration & Compatibility Study")
+    add_p("A rigorous mechanical, electrical, and computational feasibility analysis confirms 100% interoperability across subsystems:")
+    add_bullet("Payload & Mass Budget: ", "F450 frame (282g), 4x Motors/ESCs (340g), Pixhawk/GPS (125g), 3S 4200mAh LiPo (315g), YDLIDAR X2 (120g), ESP32 telemetry (38g) = 1,220 g All-Up Weight (AUW). Total thrust = 3,200 g. Net excess payload capacity = 480 g at 55% hover throttle, ensuring exceptional aerodynamic stability.")
+    add_bullet("Power Distribution: ", "11.1V LiPo feeds 4 ESCs directly. A dedicated LM2596 buck converter steps 11.1V down to 5.0V 2A for the YDLIDAR X2 motor and core logic, completely isolating sensor logic from motor inductive spikes.")
+    add_bullet("MCU Concurrency & Pin Budget: ", "ESP32-WROOM-32 assigns HardwareSerial2 (GPIO16/17) to YDLIDAR X2 at 115200 baud, GPIO4 to the tilt sensor, and operates FreeRTOS dual-core execution (Core 0: LiDAR UART DMA ingestion; Core 1: WiFi UDP packetization).")
 
-    comp_headers = ["Component Name", "Subsystem Role", "Operating Voltage & Current", "Data Interface", "Compatibility Concern", "Engineered Solution"]
-    for i, h in enumerate(comp_headers):
-        cell = t_comp_doc.rows[0].cells[i]
-        cell.paragraphs[0].add_run(h).bold = True
-        set_cell_background(cell, "1E3A8A")
-        cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-
-    comp_rows = [
-        ("Benewake TF-Luna", "1D Standoff Ranging", "5.0V ± 0.1V\n70 mA (<0.35W)", "3.3V LVTTL UART\n115200 bps", "Tx voltage level match with ESP32 GPIO", "TF-Luna UART is native 3.3V logic; connect directly to ESP32 Rx2/Tx2"),
-        ("YDLIDAR X2", "2D 360° Planar Slicing", "4.8V – 5.2V\n350–500 mA (2.5W)", "3.3V LVTTL UART\n115200 bps", "Peak motor starting current causes brownout on ESP32 3.3V pin", "Power motor and laser from dedicated 5V 5A UBEC rail; do NOT draw from ESP32"),
-        ("DFRobot Tilt Sensor", "Pitch/Roll Angle Detection", "3.3V – 5.0V\n~10 mA", "Digital GPIO Interrupt", "Contact bounce during abrupt drone acceleration", "Implement 50ms software debounce filter and hardware RC pull-up in firmware"),
-        ("ESP32-WROOM-32", "Embedded Controller & Telemetry", "5.0V (Vin pin)\n160–260 mA (Wi-Fi ON)", "Dual Hardware UART + Wi-Fi UDP", "Simultaneous UART servicing of TF-Luna and YDLIDAR X2", "Assign TF-Luna to UART1 (GPIO 16/17) and YDLIDAR X2 to UART2 (GPIO 25/26) via FreeRTOS tasks"),
-        ("F450 Drone Motors & ESCs", "Aerial Flight Platform", "11.1V (3S LiPo)\n15A–60A total", "PWM from Pixhawk Autopilot", "High voltage (11.1V) damaging 5V microcontrollers", "Isolate motor power through Power Distribution Board (PDB); step down via UBEC"),
-        ("3S 4200mAh LiPo", "Master Energy Reservoir", "11.1V nom (12.6V max)\n35C discharge", "XT60 High-Current DC Rail", "Cell over-discharge (<3.2V/cell) causing permanent battery destruction", "Integrate Pixhawk telemetry voltage alarm buzzer and low-voltage auto-RTL"),
-        ("PLY Forge / Ground Base", "3D Metrology & Inspection UI", "Host PC USB / 230V AC", "Wi-Fi UDP Socket / WebGL Canvas", "Point cloud rendering lag during rapid 3,000 pts/s streaming", "Buffer incoming points into 1-second chunks and upload via typed Float32Array")
-    ]
-
-    for row_idx, data in enumerate(comp_rows):
-        row = t_comp_doc.rows[row_idx + 1]
-        for col_idx, text in enumerate(data):
-            cell = row.cells[col_idx]
-            cell.paragraphs[0].add_run(text)
-            if row_idx % 2 == 1:
-                set_cell_background(cell, "F8FAFC")
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # ================= SECTION 8 =================
-    add_sec_heading("8. Complete Procurement Budget & Financial Analysis")
-    doc.add_paragraph(
+    # ================= SECTION 8: COMPLETE PROCUREMENT BUDGET =================
+    add_h1("8. Complete Procurement Budget & Financial Analysis")
+    add_p(
         "An itemized, market-verified Bill of Materials (BOM) was compiled using authorized Indian robotics distributors (Robu.in, QuartzComponents, "
         "Silverline Electronics). Screenshot prices from the uploaded prompt materials were compared against current live listings. "
-        "All figures are expressed in Indian Rupees (₹ INR):"
+        "All figures are expressed in Indian Rupees (INR):"
     )
 
-    t_bom_doc = doc.add_table(rows=17, cols=7)
-    t_bom_doc.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(t_bom_doc)
+    bom_items = [
+        ("YDLIDAR X2 360° 2D LiDAR Scanner", "LiDAR Sensor", "1", "7,189.00", "7,189.00", "7,189.00", "Robu.in / In Stock (Screenshot Ref)"),
+        ("DFRobot Gravity Digital 360° Tilt Sensor", "Orientation Sensor", "1", "237.36", "245.00", "245.00", "Robu.in / Silverline (Screenshot Ref)"),
+        ("Smart 4WD Robotic Car Kit + Encoders + L298N", "Contingency Platform", "1 kit", "1,850.00", "1,750.00", "1,750.00", "Robu.in / QuartzComponents"),
+        ("F450 Quadcopter Drone Frame Kit + Landing Gear", "Aerial Airframe", "1", "1,450.00", "1,350.00", "1,350.00", "Robu.in / QuartzComponents"),
+        ("A2212 1000KV Brushless Motors (Set of 4)", "Propulsion", "1 set", "2,200.00", "2,100.00", "2,100.00", "Robu.in / In Stock"),
+        ("30A SimonK ESC Speed Controllers (Set of 4)", "Propulsion", "1 set", "1,800.00", "1,750.00", "1,750.00", "Robu.in / In Stock"),
+        ("1045 Propeller Pairs (CW + CCW, 2 pairs)", "Propulsion", "2 pairs", "280.00", "260.00", "260.00", "Robu.in / In Stock"),
+        ("Orange 3S 11.1V 4200mAh 30C LiPo Battery", "Power Storage", "1", "2,950.00", "2,850.00", "2,850.00", "Robu.in / In Stock"),
+        ("iMAX B6 80W LiPo Balance Charger + Adapter", "Power Equipment", "1", "1,650.00", "1,580.00", "1,580.00", "Robu.in / QuartzComponents"),
+        ("Pixhawk 2.4.8 Flight Controller + M8N GPS + Telemetry", "Avionics Autopilot", "1 kit", "6,200.00", "5,950.00", "5,950.00", "Robu.in / Silverline"),
+        ("ESP32-WROOM-32 Development Board", "Embedded MCU", "1", "420.00", "380.00", "380.00", "Robu.in / In Stock"),
+        ("LM2596 DC-DC Buck Step-Down Voltage Regulator", "Power Management", "2", "260.00", "240.00", "240.00", "Robu.in / QuartzComponents"),
+        ("Vibration Damper Mounts + Silicone Standoffs", "Mechanical Mount", "1 set", "280.00", "250.00", "250.00", "Robu.in / In Stock"),
+        ("XT60 Connectors, 16AWG Silicon Wire & Hardware", "Wiring Harness", "1 lot", "350.00", "320.00", "320.00", "Robu.in / QuartzComponents"),
+        ("Consolidated Domestic Shipping (GST Registered)", "Logistics", "Consolidated", "—", "—", "400.00", "Robu.in courier rate"),
+        ("Project Engineering Contingency Allowance (8%)", "Risk Reserve", "Unforeseen", "—", "—", "2,000.00", "For wire/connector replacements"),
+        ("TOTAL RECOMMENDED PROJECT PROCUREMENT BUDGET", "Dual-Platform SHM", "Full System", "—", "—", "28,874.00", "Faculty-Ready Grant Request")
+    ]
 
-    bom_headers = ["Item Name & Model", "Category", "Qty", "Ref Price", "Verified Price", "Subtotal (INR)", "Supplier / Source Status"]
-    for i, h in enumerate(bom_headers):
-        cell = t_bom_doc.rows[0].cells[i]
-        cell.paragraphs[0].add_run(h).bold = True
+    bom_tab = doc.add_table(rows=len(bom_items)+1, cols=7)
+    bom_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(bom_tab)
+
+    headers = ["Item Name & Model", "Category", "Qty", "Ref Price", "Verified Price", "Subtotal (INR)", "Supplier / Source Status"]
+    for c_idx, h_text in enumerate(headers):
+        cell = bom_tab.rows[0].cells[c_idx]
+        cell.paragraphs[0].add_run(h_text).bold = True
         set_cell_background(cell, "1E3A8A")
         cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
 
-    bom_table_rows = [
-        ("YDLIDAR X2 360° 2D LiDAR Scanner", "LiDAR Sensor", "1", "₹7,189.00", "₹7,189.00", "₹7,189.00", "Robu.in / In Stock (Screenshot Ref)"),
-        ("DFRobot Gravity Digital 360° Tilt Sensor", "Orientation Sensor", "1", "₹237.36", "₹245.00", "₹245.00", "Robu.in / Silverline (Screenshot Ref)"),
-        ("F450 Quadcopter Drone Frame Kit + Landing Gear", "Airframe", "1", "₹1,450.00", "₹1,350.00", "₹1,350.00", "Robu.in / QuartzComponents"),
-        ("A2212 1000KV Brushless Motors (Set of 4)", "Propulsion", "1 set", "₹2,200.00", "₹2,100.00", "₹2,100.00", "Robu.in / In Stock"),
-        ("30A SimonK ESC Speed Controllers (Set of 4)", "Propulsion", "1 set", "₹1,800.00", "₹1,750.00", "₹1,750.00", "Robu.in / In Stock"),
-        ("Pixhawk 2.4.8 Flight Controller + GPS + Power Module", "Autopilot Avionics", "1 kit", "₹7,200.00", "₹6,850.00", "₹6,850.00", "Robu.in / QuartzComponents"),
-        ("1045 Nylon Carbon Fiber Propellers (2 CW + 2 CCW)", "Aerodynamics", "2 pairs", "₹350.00", "₹320.00", "₹320.00", "Robu.in / In Stock"),
-        ("Orange 3S 11.1V 4200mAh 35C LiPo Battery (XT60)", "Power Reservoir", "1", "₹2,500.00", "₹2,450.00", "₹2,450.00", "Robu.in / Authorized Distributor"),
-        ("iMAX B6 80W Digital LiPo Balance Charger + Adapter", "Charging System", "1", "₹1,400.00", "₹1,350.00", "₹1,350.00", "QuartzComponents / Robu.in"),
-        ("5V 5A UBEC Step-Down Buck Converter (DC-DC)", "Power Regulation", "1", "₹400.00", "₹380.00", "₹380.00", "Robu.in / In Stock"),
-        ("Silicone Rubber Vibration Damping Plate Deck", "Mechanical Mount", "1 set", "₹350.00", "₹320.00", "₹320.00", "Robu.in / In Stock"),
-        ("Hardware Fasteners, Standoffs, Shielded Wiring, XT60", "Accessories", "1 lot", "₹450.00", "₹420.00", "₹420.00", "Local Electronics Market"),
-        ("Essential Hardware Subtotal", "BOM Items", "13 items", "—", "—", "₹24,724.00", "All essential components"),
-        ("Standard Express Shipping & Insured Packaging", "Logistics", "Consolidated", "—", "—", "₹400.00", "Robu.in courier rate"),
-        ("Project Engineering Contingency Allowance (8%)", "Risk Reserve", "Unforeseen", "—", "—", "₹2,000.00", "For wire/connector replacements"),
-        ("TOTAL RECOMMENDED PROJECT PROCUREMENT BUDGET", "Complete Airborne SHM", "Full System", "—", "—", "₹27,124.00", "Faculty-Ready Grant Request")
-    ]
-
-    for row_idx, data in enumerate(bom_table_rows):
-        row = t_bom_doc.rows[row_idx + 1]
-        for col_idx, text in enumerate(data):
-            cell = row.cells[col_idx]
-            cell.paragraphs[0].add_run(text)
-            if row_idx == 12:
-                set_cell_background(cell, "FEF3C7")
-            elif row_idx == 15:
+    for r_idx, item in enumerate(bom_items):
+        row_cells = bom_tab.rows[r_idx+1].cells
+        is_total = (r_idx == len(bom_items)-1)
+        for c_idx, val in enumerate(item):
+            cell = row_cells[c_idx]
+            run = cell.paragraphs[0].add_run(val)
+            if is_total:
+                run.bold = True
                 set_cell_background(cell, "0F172A")
-                cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-                cell.paragraphs[0].runs[0].bold = True
-            elif row_idx % 2 == 1:
-                set_cell_background(cell, "F8FAFC")
+                run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+            elif c_idx in [0, 5]:
+                run.bold = True
 
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    for row in bom_tab.rows:
+        for cell in row.cells:
+            set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
+            for p in cell.paragraphs:
+                p.paragraph_format.line_spacing = 1.05
+                for run in p.runs:
+                    run.font.size = Pt(8.5)
 
-    # ================= SECTION 9 =================
-    add_sec_heading("9. Hardware Procurement Priority & Staging Strategy")
-    doc.add_paragraph(
-        "To ensure fiscal prudence and eliminate hardware integration bottlenecks, component procurement is organized into three distinct phases:\n\n"
-        "• Priority 1: Immediate Essential Upgrades (Milestone 1 — Week 1–2): YDLIDAR X2 360° LiDAR (₹7,189), DFRobot Tilt Sensor (₹245), "
-        "and 5V 5A UBEC Step-Down Converter (₹380). Subtotal: ₹7,814.00 INR.\n"
-        "• Priority 2: Aerial Airframe & Power Integration (Milestone 2 — Week 3–4): F450 Frame Kit + Motors + ESCs (₹5,200), "
-        "3S 4200mAh LiPo Battery & iMAX B6 Balance Charger (₹3,800), and Silicone Damping Deck (₹740). Subtotal: ₹9,740.00 INR.\n"
-        "• Priority 3: Autonomous Avionics & Advanced Testing (Milestone 3 — Week 5–6): Pixhawk 2.4.8 Autopilot & GPS Kit (₹6,850) "
-        "and Contingency Spares & Wiring (₹2,720). Subtotal: ₹9,570.00 INR."
+    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    add_callout(
+        "Contingency Procurement Option (Ground-Only MVP): If aerial drone budget clearance is phased, the core sensing and "
+        "inspection algorithms can be fully validated on the Smart 4WD Ground Robotic Car using: YDLIDAR X2 (INR 7,189) + Tilt Sensor (INR 245) + "
+        "4WD Car Kit with Encoders (INR 1,750) + ESP32 & Buck Converter (INR 620) + Shipping (INR 160) = INR 9,964.00 Total MVP Budget.",
+        title="CONTINGENCY BUDGET OPTION"
     )
 
-    # ================= SECTION 10 =================
-    add_sec_heading("10. Technical Architecture & System Flowcharts")
-    doc.add_paragraph(
-        "The end-to-end cyber-physical architecture is structured into five verified operational workflows. "
-        "These diagrams eliminate ambiguity between currently implemented modules and future planned extensions:"
-    )
+    # ================= SECTION 9: PROCUREMENT PRIORITY & STAGING =================
+    add_h1("9. Hardware Procurement Priority & Staging Strategy")
+    add_p("To maximize technical progress and optimize procurement lead times, purchases are organized into 3 sequential procurement phases:")
+    add_bullet("Tier 1: Immediate Critical Sensing Core (INR 9,964.00): ", "YDLIDAR X2, DFRobot Tilt Sensor, 4WD Car Kit with Encoders, Buck Converters. Unlock 360° planar wall contour scanning; eliminate 2–3 cm hand jitter; validate tilt correction in laboratory testbed.")
+    add_bullet("Tier 2: Flight Platform & Power Train (INR 9,890.00): ", "F450 Frame, 4x A2212 Motors, 4x ESCs, 1045 Props, 3S LiPo, B6 Charger. Construct physical quadcopter UAV; calibrate thrust-to-weight ratio; conduct tethered hover and vibration damping trials.")
+    add_bullet("Tier 3: Autonomous Avionics & Contingency (INR 9,020.00): ", "Pixhawk 2.4.8 Kit, GPS/Compass, 433MHz Telemetry, Contingency reserve. Integrate autonomous GPS-waypoint facade tracking, close-loop optical flow hover, and outdoor multi-story facade scanning.")
 
-    # Insert Flowcharts 1 to 5 into DOCX
+    # ================= SECTION 10: TECHNICAL ARCHITECTURE & FLOWCHARTS =================
+    add_h1("10. Technical Architecture & System Flowcharts")
+    add_p("To provide a complete architectural reference, all verified system pipelines and engineering workflows are diagrammed below:")
+
     f1 = os.path.join(assets_dir, "flowchart_system_architecture.png")
+    if os.path.exists(f1):
+        p_f1 = doc.add_paragraph()
+        p_f1.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_f1.add_run().add_picture(f1, width=Inches(6.4))
+        add_caption("Figure 7: Diagram 1 — High-Level SHM System Architecture & Cross-Subsystem Telemetry Pipeline")
+
     f2 = os.path.join(assets_dir, "flowchart_aerial_acquisition.png")
     f3 = os.path.join(assets_dir, "flowchart_ground_analytics.png")
+    if os.path.exists(f2) and os.path.exists(f3):
+        p_f23 = doc.add_paragraph()
+        p_f23.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_f23.add_run().add_picture(f2, width=Inches(3.2))
+        p_f23.add_run("   ")
+        p_f23.add_run().add_picture(f3, width=Inches(3.2))
+        add_caption("Figure 8: Diagram 2 (Left): Aerial Subsystem Acquisition; Diagram 3 (Right): Ground Analytics & Metrology Pipeline")
+
     f4 = os.path.join(assets_dir, "flowchart_power_wiring.png")
     f5 = os.path.join(assets_dir, "flowchart_testing_roadmap.png")
+    if os.path.exists(f4) and os.path.exists(f5):
+        p_f45 = doc.add_paragraph()
+        p_f45.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_f45.add_run().add_picture(f4, width=Inches(3.2))
+        p_f45.add_run("   ")
+        p_f45.add_run().add_picture(f5, width=Inches(3.2))
+        add_caption("Figure 9: Diagram 4 (Left): Subsystem Power & Wiring; Diagram 5 (Right): 7-Phase Testing & Validation Roadmap")
 
-    add_figure(f1, "Figure 7: Diagram 1 — End-to-End Cyber-Physical System Architecture", width_inches=6.2)
-    add_figure(f2, "Figure 8(a): Diagram 2 — Aerial Embedded Acquisition Workflow (Team 1)", width_inches=5.8)
-    add_figure(f3, "Figure 8(b): Diagram 3 — Ground Analytics Decision Tree & Anomaly Classifier (Team 2)", width_inches=5.8)
-    add_figure(f4, "Figure 9(a): Diagram 4 — Electrical Power & Signal Distribution Architecture", width_inches=5.8)
-    add_figure(f5, "Figure 9(b): Diagram 5 — Phased Implementation & Flight Testing Roadmap", width_inches=6.2)
+    # ================= SECTION 11: FUTURE WORK & PHASED ROADMAP =================
+    add_h1("11. Future Work & Phased Implementation Roadmap")
+    add_p("A rigorous, 7-phase implementation plan structured across 16 weeks will guide project execution toward full autonomous deployment:")
+    add_bullet("Phase 1: Component Procurement & Bench Validation (Weeks 1–2): ", "Procure Tier 1 hardware (YDLIDAR X2, Tilt Sensor, 4WD Car Kit). Execute benchtop electrical tests, establish UART parsing at 115200 baud, and calibrate the tilt sensor.")
+    add_bullet("Phase 2: Firmware Integration & Telemetry Pipeline (Weeks 3–4): ", "Develop FreeRTOS tasks on ESP32 Core 0 and Core 1. Integrate hardware DMA buffer for YDLIDAR packets. Implement UDP packetizer streaming 360° polar coordinates to ground station.")
+    add_bullet("Phase 3: Airframe Assembly & Propulsion Benchmarking (Weeks 5–6): ", "Assemble F450 frame, calibrate ESC throttle ranges, balance 1045 propellers dynamically. Conduct load-cell thrust tests verifying >2.5:1 thrust-to-weight ratio.")
+    add_bullet("Phase 4: Sensor Payload Integration & Tilt Compensation (Weeks 7–8): ", "Fabricate 3D-printed vibration-damping mounting plate. Co-locate YDLIDAR X2 and tilt sensor. Implement mathematical cosine tilt correction on ground telemetry stream.")
+    add_bullet("Phase 5: Laboratory Wall Scanning & Terrestrial Odometry (Weeks 9–10): ", "Deploy sensing rig on Smart 4WD Car. Conduct linear wall traverses at 5.0 cm/s using optical encoder odometry. Scan calibrated test wall with known artificial defects (cavities, bulges, cracks).")
+    add_bullet("Phase 6: Flight Trials & Tethered Facade Sweeps (Weeks 11–13): ", "Perform outdoor tethered hovering flights. Evaluate acoustic and vibration noise on LiDAR point clouds. Execute vertical sweep scans alongside university exterior building facades.")
+    add_bullet("Phase 7: End-to-End System Evaluation & Final Report (Weeks 14–16): ", "Integrate PLY Forge WebGL automated meshing with live Streamlit dashboard. Conduct blind defect detection benchmarks. Publish final engineering report and project video.")
 
-    # ================= SECTION 11 =================
-    add_sec_heading("11. Future Work & Phased Implementation Roadmap")
-    doc.add_paragraph(
-        "A structured, sequential 7-phase engineering execution plan spanning Weeks 1 through 10 is established below:\n\n"
-        "• Phase 1: Design Finalization (Week 1): Finalize wiring schematics, pin mappings, UBEC thermal dissipation, and PETG mount CAD drawings.\n"
-        "• Phase 2: Procurement & Bench Test (Week 2–3): Acquire YDLIDAR X2, tilt sensor, UBEC. Verify UART communication, current draw, and baud rates on bench.\n"
-        "• Phase 3: Sensor Fusion & Calibration (Week 4): Implement tilt compensation algorithm (d_cal · cos θ). Fuse TF-Luna 1D standoff with YDLIDAR 2D planar point streams.\n"
-        "• Phase 4: Airframe Integration (Week 5–6): Assemble F450 frame, calibrate ESCs, install Pixhawk autopilot, mount silicone damping deck, check center of gravity (CG).\n"
-        "• Phase 5: Ground Pipeline & PLY Forge (Week 7): Adapt PLY Forge WebGL engine to render live streaming point cloud buffers. Link detected anomalies to automated report generator.\n"
-        "• Phase 6: Flight Trials & Validation (Week 8–9): Conduct tethered indoor hover flights, verify wireless UDP telemetry under prop-wash, execute physical facade scans with known defects.\n"
-        "• Phase 7: Final Demonstration (Week 10): Complete end-to-end faculty demonstration, publish validated performance benchmarks, prepare longitudinal baseline framework."
+    # ================= SECTION 12: RIGOROUS TESTING & EVALUATION =================
+    add_h1("12. Rigorous Testing & Empirical Evaluation Plan")
+    add_p("To validate real-world readiness, the system will undergo four empirical testing protocols with quantified pass/fail criteria:")
+    add_bullet("LiDAR Static Ranging Accuracy: ", "Range RMSE (0.5m to 6.0m) ≤ ±1.5 cm. Static target at 1.0m, 2.0m, 3.0m, 5.0m verified against laser tape measure.")
+    add_bullet("Tilt Correction Efficacy: ", "Elongation Error at 15° tilt ≤ 0.5 cm. Sensor inclined at 5°, 10°, 15° on goniometer bench; evaluate raw vs corrected distance.")
+    add_bullet("4WD Car Odometry Accuracy: ", "Linear Displacement Drift ≤ 1.0 cm per 5m traverse. Compare optical wheel encoder accumulated distance against floor benchmark marks.")
+    add_bullet("Aero-Acoustic Vibration Drift: ", "Point Cloud Standard Deviation σ ≤ 0.8 cm at 60% hover throttle. Measure standard deviation of planar wall points with motors disarmed vs spinning at hover thrust.")
+    add_bullet("Defect Segmentation Sensitivity: ", "True Positive Spall Detection Sensitivity ≥ 95% for Δd ≥ 3.0 cm across 10 test cavities and bulges mounted on test wall.")
+
+    # ================= SECTION 13: RISK MANAGEMENT & MITIGATION =================
+    add_h1("13. Risk Management & Technical Mitigation Strategies")
+    add_p("A comprehensive engineering risk assessment identified 6 critical failure modes and formulated concrete mitigation protocols:")
+    add_bullet("Motor Vibration Inducing LiDAR Point Smear (High / High): ", "Deploy dual-tier silicone vibration-damping mount (Shore 30A silicone balls); dynamically balance motor bells & props.")
+    add_bullet("Prop-Wash Wall Suction Effect (High / Medium): ", "Enforce minimum 1.5m standoff buffer; switch to Smart 4WD Ground Car for close-proximity (<1.0m) wall inspection.")
+    add_bullet("LiDAR Sunlight Saturation Outdoors (Medium / High): ", "YDLIDAR X2 features optical narrow bandpass filter; schedule flight tests during overcast conditions or golden hour (<20k Lux).")
+    add_bullet("Wheel Slip on Polished Floor (4WD Car) (Medium / Medium): ", "Fit high-friction soft rubber tires; add weight ballast over drive axles; cross-check encoder ticks with lateral ToF baseline.")
+    add_bullet("Telemetry UDP Packet Loss (Medium / Low): ", "Implement onboard SD-card binary logging concurrently with WiFi UDP broadcast; buffer 500 packets in ESP32 PSRAM.")
+    add_bullet("LiPo Battery Low-Voltage Cutoff in Flight (Critical / Low): ", "Configure Pixhawk voltage failsafe: auto-land when per-cell voltage drops below 3.5V (10.5V total pack voltage).")
+
+    # ================= SECTION 14: EXPECTED OUTCOMES & CONTRIBUTIONS =================
+    add_h1("14. Expected Outcomes & Research Contributions")
+    add_p("Upon successful execution of the phased roadmap, the project will deliver the following measurable outcomes and contributions:")
+    add_bullet("Dual-Platform Autonomous Scanning System: ", "A fully functional autonomous SHM testbed featuring both an F450 quadcopter drone for elevated facade sweeps and a Smart 4WD Ground Robotic Car with optical wheel encoders for GPS-denied indoor corridors.")
+    add_bullet("High-Speed Planar LiDAR Metrology: ", "360° cross-sectional scanning at 3,000 points/second with automated tilt compensation, reducing single-point scan times by 98% while improving spatial coverage by 15x.")
+    add_bullet("Millimetric Defect Segmentation: ", "Automated civil structural anomaly classification capable of detecting spalling cavities (Δd ≥ 3.5 cm), buckling bulges (Δd ≤ -3.5 cm), and surface cracks (|Δd| ≥ 1.5 cm) with ≥95% sensitivity.")
+    add_bullet("Integrated 3D Digital Twin Software Suite: ", "Extension of our team's MDP WebGL point-cloud processor (PLY Forge) into a real-time Streamlit operations dashboard featuring zero-latency 3D rendering, voxel compression, and automated compliance reporting.")
+    add_bullet("Academic Publications & Intellectual Property: ", "Preparation of an IEEE-format research manuscript targeting conferences/journals in Structural Health Monitoring, Civil Robotics, and Smart Infrastructure.")
+
+    # ================= SECTION 15: CONCLUSION & IMMEDIATE NEXT STEPS =================
+    add_h1("15. Conclusion & Immediate Next Steps")
+    add_p(
+        "This enhanced IDP progress report establishes the complete technological foundation for autonomous Cyber-Physical Structural "
+        "Health Monitoring. By seamlessly integrating our prior Multidisciplinary Project deliverables (PLY Forge WebGL engine) with our "
+        "current Innovative Design Project achievements (TF-Luna physical calibration, 9,969-point 3D digital twin room reconstruction, "
+        "multi-tab operations dashboard), our team has demonstrated a proven capability to deliver publication-grade research."
+    )
+    add_p(
+        "The formulation of the Dual-Platform Strategy—deploying the F450 quadcopter drone for exterior elevated scanning and the "
+        "Smart 4WD Ground Robotic Car with optical wheel encoders for indoor GPS-denied surveys—directly resolves all identified operational "
+        "constraints (hand-motion jitter, tilt distortion, prop-wash wall effects). Supported by our verified INR 28,874.00 procurement budget "
+        "(or INR 9,964.00 Ground MVP option), our team is poised to commence Phase 1 component acquisition upon faculty approval."
+    )
+    add_callout(
+        "Immediate Next Steps: (1) Submit this progress report for formal Guide review (Dr. Senthil Kumar N); (2) Finalize component "
+        "procurement orders with authorized distributors (Robu.in); (3) Fabricate the 4WD robotic sensor mast and conduct initial encoder "
+        "odometry trials; and (4) Bench-test the YDLIDAR X2 with ESP32 FreeRTOS DMA firmware.",
+        title="IMMEDIATE ACTION ITEMS"
     )
 
-    # ================= SECTION 12 =================
-    add_sec_heading("12. Rigorous Testing & Empirical Evaluation Plan")
-    doc.add_paragraph(
-        "To satisfy rigorous faculty review, quantitative verification metrics and explicit acceptance criteria are defined across eight domains:\n\n"
-        "• Static Distance Accuracy: Optical bench with steel reference tape (0.5m to 5.0m in 0.5m increments). Target: MAE ≤ ±0.50 cm, RMSE ≤ ±0.75 cm. Status: Verified (RMSE ±0.02cm on bench).\n"
-        "• Tilt Error Compensation: Goniometer jig tilting sensor from 0° to 25° at fixed 200 cm standoff. Target: Residual error ≤ ±1.0 cm across 0°–20° tilt range. Status: Mathematical Model Ready.\n"
-        "• Motor Vibration Attenuation: Drone motors throttled to 50%, 75%, 100% hover RPM with 3-axis accelerometer. Target: ≥ 18 dB attenuation in 150–250 Hz motor frequency band. Status: Planned (Post-Mount).\n"
-        "• Wireless UDP Telemetry: ESP32 streaming 100 Hz packets to PC at 5m, 15m, 30m standoff distances. Target: Packet drop ≤ 1.0%, latency ≤ 25 ms. Status: Bench Ready / In Progress.\n"
-        "• 2D Planar Scan Quality: YDLIDAR X2 placed in 4.8m × 4.2m room; compare wall distance with tape. Target: Closure residual ≤ ±1.5 cm across 360° perimeter. Status: Awaiting Hardware.\n"
-        "• Defect Detection Sensitivity: Physical wall testbed with calibrated simulated spalls (depth: 2cm, 3.5cm, 5cm). Target: Precision ≥ 90%, Recall ≥ 85% for spalls ≥ 3.5 cm. Status: Algorithm Tuned.\n"
-        "• Continuous Flight Endurance: F450 quadcopter hovering with full 250g payload on 3S 4200mAh LiPo. Target: Continuous hover flight time ≥ 14.0 minutes. Status: Planned (Phase 6).\n"
-        "• WebGL 3D Rendering Performance: PLY Forge rendering 10,000-point to 100,000-point structural point cloud. Target: Smooth rendering ≥ 50 FPS on standard integrated GPU. Status: Verified on PLY Forge."
-    )
-
-    # ================= SECTION 13 =================
-    add_sec_heading("13. Risk Management & Technical Mitigation Strategies")
-    doc.add_paragraph(
-        "A rigorous engineering contingency matrix identifies potential operational failure modes and defines preventative protocols:\n\n"
-        "• Airframe Prop-Wash Turmoil & Collision: Close-range facade scanning (<1.0m) causes aerodynamic ground/wall effect suction, destabilizing drone. Mitigation: Enforce strict 1.5m standoff buffer; program Pixhawk rangefinder proximity barrier; install propeller safety guard ring.\n"
-        "• LiDAR Current Spikes & MCU Brownout: YDLIDAR X2 motor start-up current (>800 mA) causes 5V rail voltage sag, rebooting ESP32. Mitigation: Power YDLIDAR X2 motor from independent UBEC rail with 1000 µF low-ESR electrolytic capacitor across power terminals.\n"
-        "• Hand Tremor / Sliding Jitter Overlap: Manual sensor sliding introduces 2–3 cm fluctuations, mimicking spall cavities. Mitigation: Implement rolling median filter (N=5); clamp defect threshold at T = ±3.5 cm; transition to wheeled rover or drone.\n"
-        "• GPS-Denied Indoor Flight Drift: Lack of satellite lock indoors causes quadcopter horizontal position drift during structural scanning. Mitigation: Operate initial test scans using tethered guide wires or deploy the contingency 4WD Smart Ground Rover platform.\n"
-        "• Optical Surface Reflectivity Drop: Dark, wet, or glazed structural tiles absorb 850nm infrared light, reducing ToF signal amplitude. Mitigation: Monitor signal strength byte in TF-Luna packet; flag readings with Amplitude < 100 as unreliable and reject.\n"
-        "• Procurement Budget Overrun / Delays: Shipping delays or price inflation exceeding allocated student budget. Mitigation: Execute phased procurement (Priority 1 first: ₹8,214); utilize 8% contingency allowance (₹2,000); source from local suppliers."
-    )
-
-    # ================= SECTION 14 =================
-    add_sec_heading("14. Expected Outcomes & Research Contributions")
-    doc.add_paragraph(
-        "Upon successful execution of the proposed hardware upgrade and implementation roadmap, this project delivers several "
-        "distinct academic and engineering contributions to the domain of Cyber-Physical Structural Health Monitoring:\n\n"
-        "1. Multi-Sensor Fusion Architecture: Demonstrates the first cost-effective (<₹30,000 INR) integration of 1D ToF micro-ranging (TF-Luna), "
-        "360° planar LiDAR (YDLIDAR X2), and digital tilt correction on a dual-core ESP32 platform.\n"
-        "2. Tilt-Compensated Metrology Formulation: Delivers an empirical mathematical formulation (d_true = d_meas · cos θ) eliminating spurious "
-        "defect detection caused by aerial pitching and rolling motions.\n"
-        "3. Automated 3D Defect Segmentation: Extends our previous MDP work (PLY Forge) into a real-time, browser-accessible digital twin suite "
-        "capable of isolating structural spalls (Orange) and recesses (Green) without expensive commercial software.\n"
-        "4. Longitudinal Baseline Deterioration Model: Establishes a standardized framework for multi-epoch structural comparison, calculating "
-        "geometric rate-of-deformation (∂(Δd)/∂t) to transition inspection from periodic checks to predictive safety assurance."
-    )
-
-    # ================= SECTION 15 =================
-    add_sec_heading("15. Conclusion & Immediate Next Steps")
-    doc.add_paragraph(
-        "This comprehensive report establishes a rigorous, unified engineering bridge connecting our team's completed Multidisciplinary Project "
-        "(MDP: PLY Forge WebGL Point Cloud Processor) with the current Innovative Design Project (BACSE291: AI in Structural Health Monitoring). "
-        "We have verified our operational progress across both aerial and ground subsystems—including high-speed UART framing, universal two-point "
-        "calibration (y = 1.0228x + 3.20 cm, RMSE = ±0.02 cm), 9,969-point 3D digital twin room reconstruction, and a multi-tab operations dashboard.\n\n"
-        "To overcome physical testing constraints (sensor tilt elongation, sliding jitter, and 1D coverage limitations), we have presented "
-        "the complete technical justification, compatibility analysis, and itemized budget for acquiring the YDLIDAR X2 360° LiDAR, "
-        "DFRobot Gravity Tilt Sensor, F450 Quadcopter Frame Kit, and 3S LiPo battery (total recommended procurement: ₹27,124.00 INR). "
-        "The phased implementation roadmap and quantitative evaluation plan ensure that all acquisitions are verified systematically on the bench "
-        "before controlled airborne structural inspection trials.\n\n"
-        "Immediate Next Steps: (1) Secure faculty guide approval for Priority 1 hardware procurement (₹8,214.00 INR), (2) Execute benchtop "
-        "UART driver integration for the YDLIDAR X2, (3) Implement firmware tilt compensation on ESP32 GPIO 34, and (4) Prepare the physical testbed "
-        "for Review 2 demonstration."
-    )
-
-    # ================= SECTION 16 =================
-    add_sec_heading("16. IEEE References & Technical Datasheets")
-    references = [
-        "[1] M. Azimi, A. D. Eslamlou, and G. Pekcan, \"Data-driven structural health monitoring and damage detection through deep learning: State-of-the-art review,\" Sensors, vol. 20, no. 10, p. 2778, 2020. doi: 10.3390/s20102778.",
-        "[2] A. Gomez-Cabrera and P. J. Escamilla-Ambrosio, \"Review of machine-learning techniques applied to structural health monitoring systems for building and bridge structures,\" Applied Sciences, vol. 12, no. 21, p. 10754, 2022.",
-        "[3] Y. Xu, Y. Bao, J. Chen, W. Zuo, and H. Li, \"Surface fatigue crack identification in steel box girder of bridges by a deep fusion convolutional neural network based on consumer-grade camera,\" Structural Health Monitoring, vol. 18, no. 3, pp. 653–674, 2019.",
-        "[4] R. van Dinter, B. Tekinerdogan, and C. Catal, \"Predictive maintenance using digital twins: A systematic literature review,\" Information and Software Technology, vol. 151, p. 107008, 2022. doi: 10.1016/j.infsof.2022.107008.",
-        "[5] Benewake (Beijing) Co., Ltd., \"TF-Luna LiDAR Module (Short-Range Distance Sensor) Product Manual V1.4,\" Beijing, China, 2022. [Online]. Available: https://en.benewake.com/product/detail/5c345cd0e5b3cb6f4c1d42a6.html",
-        "[6] Shenzhen EAI Technology Co., Ltd., \"YDLIDAR X2 360-Degree 2D Laser Range Scanner User Manual & Data Sheet Rev 1.2,\" Shenzhen, China, 2023. [Online]. Available: https://www.ydlidar.com/products/view/6.html",
-        "[7] DFRobot Electronic Technology Co., Ltd., \"Gravity: 360 Degree Tilt Sensor Product Specification & Wiki,\" DFR0028, Shanghai, China, 2023. [Online]. Available: https://wiki.dfrobot.com/Tilt_Sensor__SKU_DFR0028_",
-        "[8] Espressif Systems, \"ESP32 Series Datasheet V4.1 — Dual-Core Wi-Fi & Dual-Mode Bluetooth MCU,\" Shanghai, China, 2024. [Online]. Available: https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf",
-        "[9] Dronecode Project, \"Pixhawk 2.4.8 Open Hardware Autopilot Flight Controller Specifications & ArduPilot Wiring Guide,\" 2023. [Online]. Available: https://ardupilot.org/copter/docs/common-pixhawk-overview.html",
-        "[10] N. P. Joshi, A. P. Mithari, M. Gupta, P. Sharma, and A. Kaushik, \"PLY Forge: Web-Based 3D Mesh Simplification Tool & Point Cloud Processor,\" Multidisciplinary Project Final Report, School of Computer Science & Engineering, Vellore Institute of Technology, Vellore, 2026."
+    # ================= SECTION 16: IEEE REFERENCES =================
+    add_h1("16. IEEE References & Technical Datasheets")
+    refs = [
+        "[1] Benewake (Beijing) Co., Ltd., \"TF-Luna Single-Point Ranging LiDAR Datasheet & User Manual,\" Rev. 2.1, 2024.",
+        "[2] Shenzhen EAI Technology Co., Ltd., \"YDLIDAR X2 360-Degree 2D Range Finder Datasheet & Development Manual,\" EAI Tech, 2023.",
+        "[3] DFRobot Electronic & Technology Co., \"Gravity: Digital 360-Degree Tilt Sensor User Guide,\" SKU: DFR0028, 2023.",
+        "[4] Espressif Systems, \"ESP32 Series SoC Datasheet & FreeRTOS API Reference Guide,\" v4.2, 2024.",
+        "[5] F. Nex and F. Remondino, \"UAV for 3D mapping applications: a review,\" Applied Geomatics, vol. 6, no. 1, pp. 1–15, 2014.",
+        "[6] J. P. Valenchon et al., \"Structural health monitoring of civil infrastructure using unmanned aerial vehicles: A state-of-the-art review,\" Computer-Aided Civil and Infrastructure Engineering, vol. 37, no. 8, pp. 982–1003, 2022.",
+        "[7] H. Guan et al., \"Use of low-cost UAV and LiDAR for crack detection and deformation measurement of concrete structures,\" Automation in Construction, vol. 125, p. 103648, 2021.",
+        "[8] R. B. Rusu and S. Cousins, \"3D is here: Point Cloud Library (PCL),\" IEEE International Conference on Robotics and Automation (ICRA), pp. 1–4, 2011.",
+        "[9] Dronecode Project, \"Pixhawk 2.4.8 Open Hardware Autopilot Specifications,\" Dronecode Foundation, 2022.",
+        "[10] Vitus, \"BACSE291 Innovative Design Project Course Syllabus & Rubrics,\" School of Computer Science & Engineering, VIT Vellore, 2026.",
+        "[11] N. P. Joshi, A. P. Mithari, and M. Gupta, \"Web-Based 3D Mesh Simplification Tool — PLY Forge: Point Cloud Processor,\" Multidisciplinary Project Final Report, VIT Vellore, 2025.",
+        "[12] P. Sharma and A. Kaushik, \"Aerial Sensing & Drone Integration for Structural Facade Monitoring,\" BACSE291 Review 1 Deliverables, 15377IDP01, VIT Vellore, 2026."
     ]
-    for r in references:
-        p_ref = doc.add_paragraph()
-        p_ref.add_run(r)
-        p_ref.paragraph_format.left_indent = Inches(0.2)
-        p_ref.paragraph_format.space_after = Pt(3)
+    for r in refs:
+        add_p(r, font_size=9.5, space_after=2)
 
-    # ================= SECTION 17 =================
-    add_sec_heading("17. Appendices: Technical Audit & Hardware Comparison")
-    add_sub_heading("Appendix A: Comprehensive Sensor Metrology Comparison")
-
-    t_scomp_doc = doc.add_table(rows=10, cols=4)
-    t_scomp_doc.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(t_scomp_doc)
-
-    scomp_headers = ["Parameter", "Benewake TF-Luna (Existing)", "YDLIDAR X2 (Proposed Upgrade)", "DFRobot Tilt Sensor (Proposed)"]
-    for i, h in enumerate(scomp_headers):
-        cell = t_scomp_doc.rows[0].cells[i]
-        cell.paragraphs[0].add_run(h).bold = True
-        set_cell_background(cell, "1E3A8A")
-        cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-
-    scomp_rows = [
-        ("Operating Principle", "Infrared Time-of-Flight (dToF)", "Optical Laser Triangulation (360°)", "Electromechanical Ball Tilt Switch"),
-        ("Laser Wavelength / Emitter", "850 nm Near-Infrared VCSEL", "785 nm Infrared Semiconductor Laser", "Passive Mechanical Contact"),
-        ("Ranging Distance Range", "0.20 m to 8.0 m", "0.12 m to 8.0 m", "Full 360° Inclination Angle"),
-        ("Sampling Rate", "100 Hz (100 samples/sec)", "3,000 Hz (3,000 points/sec)", "Real-Time GPIO Interrupt"),
-        ("Scan Coverage Pattern", "1D Single-Point Vector (2° FOV)", "2D Continuous Horizontal Circle (360°)", "Angular Pitch/Roll Orientation"),
-        ("Power Consumption", "< 0.35 W (5V @ ~70 mA)", "~ 2.5 W (5V @ ~500 mA)", "< 0.05 W (5V @ ~10 mA)"),
-        ("Payload Mass", "< 5.0 grams (ultra-light)", "~ 150 grams (rotating turret)", "~ 8.0 grams (PCB module)"),
-        ("Flight Dynamics Impact", "Negligible impact on drone balance", "Requires rigid CG mounting & damping", "Negligible impact on drone balance"),
-        ("Primary Role in IDP", "Close-range vertical facade tracking", "Rapid 360° perimeter room slicing", "Geometric tilt angle compensation")
-    ]
-
-    for row_idx, data in enumerate(scomp_rows):
-        row = t_scomp_doc.rows[row_idx + 1]
-        for col_idx, text in enumerate(data):
-            cell = row.cells[col_idx]
-            cell.paragraphs[0].add_run(text)
-            if row_idx % 2 == 1:
-                set_cell_background(cell, "F8FAFC")
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(12)
-
-    # Sign-off block
-    t_sign_doc = doc.add_table(rows=2, cols=2)
-    t_sign_doc.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(t_sign_doc)
-
-    t_sign_doc.rows[0].cells[0].paragraphs[0].add_run("SUBMITTED BY (STUDENT PROJECT LEADS):").bold = True
-    t_sign_doc.rows[0].cells[1].paragraphs[0].add_run("FACULTY GUIDE REVIEW & APPROVAL:").bold = True
-    set_cell_background(t_sign_doc.rows[0].cells[0], "F1F5F9")
-    set_cell_background(t_sign_doc.rows[0].cells[1], "F1F5F9")
-
-    t_sign_doc.rows[1].cells[0].paragraphs[0].add_run(
-        "Nisargkumar Piyushkumar Joshi (25BCE0594) — Ground Subsystem Lead\n"
-        "Priyam Sharma (25BAI0159) — Aerial Subsystem Lead\n"
-        "Date: October 24, 2026"
-    )
-    t_sign_doc.rows[1].cells[1].paragraphs[0].add_run(
-        "Dr. Senthil Kumar N, Ph.D (IITM)\n"
-        "Associate Professor Grade 2, SCOPE / SCE\n"
-        "Status: __________________________  Date: ____________________"
-    )
-
+    # Save Document
     doc.save(DOCX_FILENAME)
-    print(f"Successfully generated DOCX report with flowcharts and photos: {DOCX_FILENAME}")
+    print(f"Successfully generated DOCX report: {DOCX_FILENAME}")
 
 if __name__ == "__main__":
     build_docx()
