@@ -1,0 +1,25 @@
+step,x_m,y_m,z_rel_m,measured_dist_m,dev_cm,feature
+0,0.0,0.5,0.0,2.4,0.0,🎯 ORIGIN REF (0,0,0)
+1,0.209,0.5,-0.004,2.404,-0.4,🟦 Normal Flat Wall
+2,0.417,0.5,0.0,2.4,0.0,🟦 Normal Flat Wall
+3,0.626,0.5,0.001,2.399,0.1,🟦 Normal Flat Wall
+4,0.835,0.5,0.65,1.75,65.0,🟧 ALMARI (+65 cm Bahar)
+5,1.043,0.5,0.65,1.75,65.0,🟧 ALMARI (+65 cm Bahar)
+6,1.252,0.5,0.65,1.75,65.0,🟧 ALMARI (+65 cm Bahar)
+7,1.461,0.5,0.65,1.75,65.0,🟧 ALMARI (+65 cm Bahar)
+8,1.67,0.5,0.65,1.75,65.0,🟧 ALMARI (+65 cm Bahar)
+9,1.878,0.5,0.002,2.398,0.2,🟦 Normal Flat Wall
+10,2.087,0.5,-0.009,2.409,-0.9,🟦 Normal Flat Wall
+11,2.296,0.5,0.004,2.396,0.4,🟦 Normal Flat Wall
+12,2.504,0.5,-0.002,2.402,-0.2,🟦 Normal Flat Wall
+13,2.713,0.5,0.15,2.25,15.0,⭐ SHELF (+15 cm Bahar) [DETECTED]
+14,2.922,0.5,0.15,2.25,15.0,⭐ SHELF (+15 cm Bahar) [DETECTED]
+15,3.13,0.5,0.15,2.25,15.0,⭐ SHELF (+15 cm Bahar) [DETECTED]
+16,3.339,0.5,0.15,2.25,15.0,⭐ SHELF (+15 cm Bahar) [DETECTED]
+17,3.548,0.5,0.001,2.399,0.1,🟦 Normal Flat Wall
+18,3.757,0.5,-0.0,2.4,-0.0,🟦 Normal Flat Wall
+19,3.965,0.5,0.0,2.4,0.0,🟦 Normal Flat Wall
+20,4.174,0.5,-0.12,2.52,-12.0,🟩 NICHE (-12 cm Andar)
+21,4.383,0.5,-0.12,2.52,-12.0,🟩 NICHE (-12 cm Andar)
+22,4.591,0.5,0.001,2.399,0.1,🟦 Normal Flat Wall
+23,4.8,0.5,0.004,2.396,0.4,🟦 Normal Flat Wall
