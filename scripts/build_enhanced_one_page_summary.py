@@ -64,8 +64,8 @@ def build_pdf_summary():
         pagesize=A4,
         leftMargin=26,
         rightMargin=26,
-        topMargin=22,
-        bottomMargin=22
+        topMargin=20,
+        bottomMargin=20
     )
 
     styles = getSampleStyleSheet()
@@ -126,12 +126,12 @@ def build_pdf_summary():
     story.append(Spacer(1, 3))
 
     # Row 2: Dual-Platform Strategy & Upgrades
-    q3_content = [Paragraph("<b>3. DUAL-PLATFORM STRATEGY &amp; HARDWARE UPGRADES</b>", sec_title)]
+    q3_content = [Paragraph("<b>3. PLATFORM SPECIFICATION: DRONE VS. SMART 4WD CAR</b>", sec_title)]
     q3_body = Paragraph(
         "&bull; <b>Platform Duality:</b> (1) <i>Autonomous F450 Drone:</i> Elevated facade &amp; bridge inspection; (2) <i>Smart 4WD Ground Car:</i> Indoor corridors, eliminating prop-wash suction &amp; hand jitter.<br/>"
-        "&bull; <b>Smart 4WD Car Odometry:</b> Dual 20-slot optical wheel encoders integrate distance at ~1.02 mm/tick; closed-loop PID maintains constant 5.0 cm/s traverse; coordinates: (X_enc, d_meas*cos&theta;, Z_mast).<br/>"
-        "&bull; <b>YDLIDAR X2 360&deg; LiDAR (INR 7,189.00):</b> 3,000 pts/s, 7 Hz planar rotation, 0.12--8.0m range, capturing full 2D cross-sectional wall slices in 142 ms.<br/>"
-        "&bull; <b>DFRobot Gravity Tilt Sensor (INR 245.00):</b> Instant pitch/roll correction: d_true = d_meas*cos(&theta;), eliminating 3.1 cm artificial elongation false cavities.",
+        "&bull; <b>If Drone Used:</b> Requires F450 airframe, 4x motors/ESCs, 3S LiPo, Pixhawk autopilot (+INR 17,350) -> Drone Total = <b>INR 26,124.00</b>.<br/>"
+        "&bull; <b>If Car Used:</b> Requires 4WD chassis, 1:48 gear motors, dual optical encoders, L298N driver, mast (+INR 3,830) -> Car Total = <b>INR 12,604.00</b> (MVP: INR 9,964).<br/>"
+        "&bull; <b>Shared Hardware:</b> YDLIDAR X2 (INR 7,189) + Tilt Sensor (INR 245) + ESP32 (INR 380) + Regulators/Harness (INR 960) = <b>INR 8,774.00</b>.",
         b_text
     )
 
@@ -139,8 +139,8 @@ def build_pdf_summary():
     q4_body = Paragraph(
         "&bull; <b>Phase 1--2 (Weeks 1--3):</b> Procure Tier 1 hardware (LiDAR, tilt sensor, 4WD car kit); verify UART framing and 5V rail regulation.<br/>"
         "&bull; <b>Phase 3--4 (Weeks 4--6):</b> Assemble F450 airframe &amp; propulsion; implement silicone vibration-damping deck (&gt;18 dB attenuation); benchmark hover thrust.<br/>"
-        "&bull; <b>Phase 5--6 (Weeks 7--10):</b> Laboratory wall scanning with Smart 4WD car (encoder odometry); tethered facade flights; blind defect detection benchmarks.<br/>"
-        "&bull; <b>Phase 7 (Weeks 11--14):</b> End-to-end integration, Streamlit PLY Forge 3D meshing, automated compliance PDF reports, and IEEE conference paper submission.<br/>"
+        "&bull; <b>Phase 5--6 (Weeks 7--10):</b> Laboratory wall scanning with Smart 4WD car (encoder odometry); tethered facade flights; blind defect detection.<br/>"
+        "&bull; <b>Phase 7 (Weeks 11--14):</b> End-to-end integration, Streamlit PLY Forge 3D meshing, automated compliance PDF reports, and IEEE submission.<br/>"
         "&bull; <b>Target Benchmarks:</b> Static distance RMSE &le; &plusmn;1.5cm; Tilt residual &le; 0.5cm; Defect sensitivity &ge; 95%; Car odometry drift &le; 1.0cm / 5m.",
         b_text
     )
@@ -163,37 +163,37 @@ def build_pdf_summary():
     story.append(row2_table)
     story.append(Spacer(1, 3))
 
-    # Budget Summary Mini Table
+    # Platform-Wise Budget Breakdown Mini Table
     b_sum_data = [
         [
-            Paragraph("<b>Component Group</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1)),
-            Paragraph("<b>Key Inclusions &amp; Specifications</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1)),
-            Paragraph("<b>Cost (INR)</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1)),
-            Paragraph("<b>Procurement Phasing</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1))
+            Paragraph("<b>Hardware Package</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1)),
+            Paragraph("<b>Specific Inclusions &amp; Role</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1)),
+            Paragraph("<b>Subtotal (INR)</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1)),
+            Paragraph("<b>When Required</b>", ParagraphStyle('ThS', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1))
         ],
         [
-            Paragraph("Sensors &amp; Contingency Car", b_bold),
-            Paragraph("YDLIDAR X2 360&deg; LiDAR (INR 7,189), DFRobot Tilt (INR 245), Smart 4WD Car + Encoders (INR 1,750), Buck (INR 240)", b_text),
-            Paragraph("INR 9,424.00", b_bold),
-            Paragraph("<font color='#059669'><b>Tier 1 (Immediate Critical / Weeks 1--2)</b></font>", b_text)
+            Paragraph("1. Shared Core Sensing", b_bold),
+            Paragraph("YDLIDAR X2 360&deg; LiDAR (INR 7,189), DFRobot Tilt (INR 245), ESP32 MCU (INR 380), Buck/Harness (INR 960)", b_text),
+            Paragraph("INR 8,774.00", b_bold),
+            Paragraph("<font color='#059669'><b>Required for BOTH Drone &amp; Car</b></font>", b_text)
         ],
         [
-            Paragraph("Airframe &amp; Power Reservoir", b_bold),
-            Paragraph("F450 Frame + 4x Motors + 4x ESCs (INR 5,200), 1045 Props (INR 260), 3S 4200mAh LiPo &amp; B6 Charger (INR 4,430)", b_text),
-            Paragraph("INR 9,890.00", b_bold),
-            Paragraph("<font color='#D97706'><b>Tier 2 (UAV Assembly / Weeks 3--4)</b></font>", b_text)
+            Paragraph("2. Drone Platform Only", b_bold),
+            Paragraph("F450 Frame, 4x Motors/ESCs (INR 5,200), 3S 4200mAh LiPo &amp; B6 Charger (INR 4,430), Pixhawk Autopilot (INR 5,950), Reserve", b_text),
+            Paragraph("INR 17,350.00", b_bold),
+            Paragraph("<font color='#1E3A8A'><b>Required ONLY if Drone is Used</b></font>", b_text)
         ],
         [
-            Paragraph("Avionics, Shipping &amp; Reserve", b_bold),
-            Paragraph("Pixhawk 2.4.8 Kit (INR 5,950), ESP32 (INR 380), Dampers/Wire (INR 570), Shipping (INR 400), Contingency (INR 2,000)", b_text),
-            Paragraph("INR 9,300.00", b_bold),
-            Paragraph("<font color='#1E3A8A'><b>Tier 3 (Flight Trials / Weeks 5--6)</b></font>", b_text)
+            Paragraph("3. Smart 4WD Car Only", b_bold),
+            Paragraph("4WD Chassis + 4x Gear Motors (INR 1,050), Dual Optical Encoders (INR 320), L298N (INR 380), Mast (INR 650), 12V Li-ion (INR 1,150)", b_text),
+            Paragraph("INR 3,830.00", b_bold),
+            Paragraph("<font color='#D97706'><b>Required ONLY if Car is Used</b></font>", b_text)
         ],
         [
-            Paragraph("<b>TOTAL DUAL-PLATFORM BUDGET</b>", ParagraphStyle('ThS2', fontName='Helvetica-Bold', fontSize=6.5, textColor=C_WHITE)),
-            Paragraph("<b>Complete Airborne UAV &amp; Smart 4WD Ground Robotic Car Systems</b>", ParagraphStyle('ThS2', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE)),
+            Paragraph("<b>TOTAL INTEGRATED DUAL-PLATFORM</b>", ParagraphStyle('ThS2', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE)),
+            Paragraph("<b>Complete All-Environment System: Shared Core + Drone Platform + Smart 4WD Car Platform</b>", ParagraphStyle('ThS2', fontName='Helvetica-Bold', fontSize=6.0, textColor=C_WHITE)),
             Paragraph("<b>INR 28,874.00</b>", ParagraphStyle('ThS2', fontName='Helvetica-Bold', fontSize=6.5, textColor=C_WHITE, alignment=1)),
-            Paragraph("<b>Ground MVP Option: INR 9,964.00</b>", ParagraphStyle('ThS2', fontName='Helvetica-Bold', fontSize=6.2, textColor=C_WHITE, alignment=1))
+            Paragraph("<b>Car-Only MVP: INR 9,964.00</b>", ParagraphStyle('ThS2', fontName='Helvetica-Bold', fontSize=6.0, textColor=C_WHITE, alignment=1))
         ]
     ]
 
@@ -277,7 +277,7 @@ def build_docx_summary():
     set_table_borders(tbl2)
 
     cells2 = tbl2.rows[0].cells
-    cells2[0].paragraphs[0].add_run("3. DUAL-PLATFORM STRATEGY & HARDWARE UPGRADES").bold = True
+    cells2[0].paragraphs[0].add_run("3. PLATFORM SPECIFICATION: DRONE VS. SMART 4WD CAR").bold = True
     cells2[1].paragraphs[0].add_run("4. FUTURE ROADMAP & SYSTEM INTEGRATION").bold = True
     set_cell_background(cells2[0], "D97706")
     set_cell_background(cells2[1], "059669")
@@ -289,9 +289,9 @@ def build_docx_summary():
     r2_cells = tbl2.rows[1].cells
     r2_cells[0].paragraphs[0].add_run(
         "• Platform Duality: (1) Autonomous F450 Drone: Elevated facade inspection; (2) Smart 4WD Ground Car: Indoor corridors, eliminating prop-wash suction & hand jitter.\n"
-        "• Smart 4WD Car Odometry: Dual 20-slot optical wheel encoders integrate distance at ~1.02 mm/tick; closed-loop PID maintains constant 5.0 cm/s traverse; coordinates: (X_enc, d_meas*cosθ, Z_mast).\n"
-        "• YDLIDAR X2 360° LiDAR (INR 7,189): 3,000 pts/s, 7 Hz planar rotation, capturing full 2D cross-sectional wall slices in 142 ms.\n"
-        "• DFRobot Gravity Tilt Sensor (INR 245): Instant pitch/roll correction: d_true = d_meas*cos(θ), eliminating 3.1 cm artificial elongation false cavities."
+        "• If Drone Used: Requires F450 airframe, 4x motors/ESCs, 3S LiPo, Pixhawk autopilot (+INR 17,350) -> Drone Total = INR 26,124.00.\n"
+        "• If Car Used: Requires 4WD chassis, 1:48 gear motors, dual optical encoders, L298N driver, mast (+INR 3,830) -> Car Total = INR 12,604.00 (MVP: INR 9,964).\n"
+        "• Shared Hardware: YDLIDAR X2 (INR 7,189) + Tilt Sensor (INR 245) + ESP32 (INR 380) + Regulators/Harness (INR 960) = INR 8,774.00."
     )
     r2_cells[1].paragraphs[0].add_run(
         "• Phase 1–2 (Weeks 1–3): Procure Tier 1 hardware (LiDAR, tilt sensor, 4WD car kit); verify UART framing and 5V rail regulation.\n"
@@ -313,12 +313,12 @@ def build_docx_summary():
 
     doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
-    # Budget Table
+    # Platform-Wise Budget Table
     btbl = doc.add_table(rows=5, cols=4)
     btbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(btbl)
 
-    bheaders = ["Component Group", "Key Inclusions & Specifications", "Cost (INR)", "Procurement Phasing"]
+    bheaders = ["Hardware Package", "Specific Inclusions & Role", "Subtotal (INR)", "When Required"]
     for i, h in enumerate(bheaders):
         c = btbl.rows[0].cells[i]
         c.paragraphs[0].add_run(h).bold = True
@@ -327,10 +327,10 @@ def build_docx_summary():
         c.paragraphs[0].runs[0].font.size = Pt(7.5)
 
     brows = [
-        ("Sensors & Contingency Car", "YDLIDAR X2 360° LiDAR (INR 7,189), DFRobot Tilt (INR 245), Smart 4WD Car + Encoders (INR 1,750), Buck (INR 240)", "INR 9,424.00", "Tier 1 (Immediate Critical / Weeks 1–2)"),
-        ("Airframe & Power Reservoir", "F450 Frame + 4x Motors + 4x ESCs (INR 5,200), 1045 Props (INR 260), 3S 4200mAh LiPo & B6 Charger (INR 4,430)", "INR 9,890.00", "Tier 2 (UAV Assembly / Weeks 3–4)"),
-        ("Avionics, Shipping & Reserve", "Pixhawk 2.4.8 Kit (INR 5,950), ESP32 (INR 380), Dampers/Wire (INR 570), Shipping (INR 400), Contingency (INR 2,000)", "INR 9,300.00", "Tier 3 (Flight Trials / Weeks 5–6)"),
-        ("TOTAL DUAL-PLATFORM BUDGET", "Complete Airborne UAV & Smart 4WD Ground Robotic Car Systems", "INR 28,874.00", "Ground MVP Option: INR 9,964.00")
+        ("1. Shared Core Sensing", "YDLIDAR X2 360° LiDAR (INR 7,189), DFRobot Tilt (INR 245), ESP32 MCU (INR 380), Buck/Harness (INR 960)", "INR 8,774.00", "Required for BOTH Drone & Car"),
+        ("2. Drone Platform Only", "F450 Frame, 4x Motors/ESCs (INR 5,200), 3S 4200mAh LiPo & B6 Charger (INR 4,430), Pixhawk Autopilot (INR 5,950), Reserve", "INR 17,350.00", "Required ONLY if Drone is Used"),
+        ("3. Smart 4WD Car Only", "4WD Chassis + 4x Gear Motors (INR 1,050), Dual Optical Encoders (INR 320), L298N (INR 380), Mast (INR 650), 12V Li-ion (INR 1,150)", "INR 3,830.00", "Required ONLY if Car is Used"),
+        ("TOTAL DUAL-PLATFORM", "Complete All-Environment System: Shared Core + Drone Platform + Smart 4WD Car Platform", "INR 28,874.00", "Car-Only MVP: INR 9,964.00")
     ]
 
     for r_idx, (g, k, cost, ph) in enumerate(brows):

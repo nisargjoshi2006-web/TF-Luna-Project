@@ -128,11 +128,12 @@ def build_docx():
     def add_caption(text):
         p = doc.add_paragraph()
         p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        p.paragraph_format.space_after = Pt(6)
+        p.paragraph_format.space_before = Pt(3)
+        p.paragraph_format.space_after = Pt(8)
         run = p.add_run(text)
         run.italic = True
         run.font.size = Pt(9.5)
-        run.font.color.rgb = c_muted
+        run.font.color.rgb = c_navy
         return p
 
     # ================= COVER PAGE =================
@@ -143,7 +144,7 @@ def build_docx():
         p_logo.paragraph_format.space_after = Pt(6)
 
     add_p("AI IN STRUCTURAL HEALTH MONITORING FOR PREDICTIVE MAINTENANCE AND CONTINUOUS SAFETY ASSURANCE", bold=True, font_size=20, color=c_navy, space_after=4)
-    add_p("Comprehensive IDP Progress Report, Previous MDP Integration, Dual-Platform Deployment (Aerial Drone & Smart 4WD Car), Hardware Upgrade & Implementation Plan", bold=True, font_size=12, color=c_primary, space_after=12)
+    add_p("Comprehensive IDP Progress Report, Previous MDP Integration, Dual-Platform Deployment (Aerial Drone & Smart 4WD Car), Platform-Wise Hardware Budget & Implementation Plan", bold=True, font_size=12, color=c_primary, space_after=12)
 
     # Academic Meta Table
     meta_table = doc.add_table(rows=4, cols=2)
@@ -204,8 +205,8 @@ def build_docx():
         "evaluates identified scanning constraints (sensor jitter, manual dragging noise, tilt elongation, motor vibration), "
         "presents our Dual-Platform Deployment Strategy (Primary Autonomous Quadcopter Drone vs. Contingency Smart 4WD Ground Robotic Car with Optical Wheel Encoders), "
         "justifies essential hardware upgrades (YDLIDAR X2 360° LiDAR, DFRobot Gravity 360° Tilt Sensor, F450 Quadcopter & 3S LiPo), "
-        "establishes an itemized INR 28,874.00 procurement budget with contingency, and outlines a rigorous 7-phase future roadmap toward "
-        "autonomous structural health monitoring (SHM).",
+        "provides an explicit Platform-Wise Procurement Budget Breakdown (Drone Requirements vs. Smart Car Requirements), "
+        "and outlines a rigorous 7-phase future roadmap toward autonomous structural health monitoring (SHM).",
         title="EXECUTIVE REPORT SUMMARY & SCOPE"
     )
 
@@ -389,12 +390,12 @@ def build_docx():
         "is immediately deployed on our Smart 4WD Ground Robotic Car. The car transforms the system from an airborne inspector into an "
         "ultra-stable, millimeter-precision terrestrial surface scanner:"
     )
-    add_bullet("Hardware Architecture on the Car: ", "A 4-wheel drive robotic chassis equipped with four high-torque DC gear motors (1:48 gear ratio), an L298N/TB6612FNG Dual H-Bridge motor driver, and dual optical wheel encoders (20-slot slotted photo-interrupter disks). A rigid, telescoping vertical aluminum mast holds the TF-Luna ToF sensor and YDLIDAR X2 at adjustable heights (0.5 m to 2.0 m elevation).")
+    add_bullet("Hardware Architecture on the Car: ", "A 4-wheel drive robotic chassis equipped with four high-torque DC gear motors (1:48 gear ratio), an L298N/TB6612FNG Dual H-Bridge motor driver, and dual optical wheel encoders (20-slot slotted photo-interrupter disks). A rigid, telescoping vertical aluminum mast holds the TF-Luna ToF sensor and YDLIDAR X2 at adjustable heights (0.2 m to 2.2 m elevation).")
     add_bullet("Closed-Loop Odometry & Speed Stabilization: ", "Unlike erratic human hand sliding, the ESP32 microcontroller executes a closed-loop PID cruise-control routine driving the car at an exact, vibration-free linear speed (e.g., constant 5.0 cm/sec). Wheel encoder pulses integrate exact linear distance traveled along the wall:\n    ΔX = N_ticks × [π × D_wheel / 20 slots]  (where D_wheel = 6.5 cm, giving ~1.02 mm resolution per tick).")
     add_bullet("Dynamic Wall Spatial Coordinate Generation: ", "The car initializes at a designated corner origin datum: P_car(0) = (0, 0, Z_mast). As the car rolls parallel to the wall, every distance measurement d_meas(t) is stamped with its exact encoder X-coordinate:\n    X_point = X_encoder(t)\n    Y_point = d_meas(t) × cos(θ_tilt)  (perpendicular distance from wall)\n    Z_point = Z_mast (stepped in 10 cm or 20 cm vertical elevation bands for full-wall coverage).")
     add_bullet("Key Advantages of the Smart Car: ", "(1) Zero Hand Jitter: Eliminates the 2–3 cm sliding noise completely; (2) Zero Prop-Wash: No aerodynamic turbulence near walls; (3) Extended Scan Endurance: Operates for 2–3 continuous hours on a 12V Li-ion pack (vs. 14 mins on drone); and (4) 100% Indoor Compliance: Safe to operate in any laboratory or classroom without flight clearance.")
 
-    # Embedded Car Diagram
+    # Embedded Car Diagram (Full-Width High Readability)
     car_diag = os.path.join(assets_dir, "flowchart_smart_car_operation.png")
     if os.path.exists(car_diag):
         p_car = doc.add_paragraph()
@@ -440,55 +441,73 @@ def build_docx():
     add_bullet("MCU Concurrency & Pin Budget: ", "ESP32-WROOM-32 assigns HardwareSerial2 (GPIO16/17) to YDLIDAR X2 at 115200 baud, GPIO4 to the tilt sensor, and operates FreeRTOS dual-core execution (Core 0: LiDAR UART DMA ingestion; Core 1: WiFi UDP packetization).")
 
     # ================= SECTION 8: COMPLETE PROCUREMENT BUDGET =================
-    add_h1("8. Complete Procurement Budget & Financial Analysis")
+    add_h1("8. Complete Procurement Budget & Platform-Wise Breakdown")
     add_p(
-        "An itemized, market-verified Bill of Materials (BOM) was compiled using authorized Indian robotics distributors (Robu.in, QuartzComponents, "
-        "Silverline Electronics). Screenshot prices from the uploaded prompt materials were compared against current live listings. "
-        "All figures are expressed in Indian Rupees (INR):"
+        "To provide complete financial transparency and operational flexibility for faculty review and grant sanctioning, "
+        "the procurement budget is categorized into three mutually transparent packages based on whether the Aerial Drone, "
+        "the Smart 4WD Ground Car, or the Integrated Dual-Platform is deployed:"
     )
+    add_bullet("Shared Core Sensing & Computing Hardware (INR 8,774.00): ", "Baseline components required regardless of platform (YDLIDAR X2 360° LiDAR, DFRobot Tilt Sensor, ESP32 MCU, LM2596 buck regulators, wiring harness, shipping).")
+    add_bullet("Package A — Required ONLY if We Use the Aerial Drone (INR 17,350.00): ", "Flight airframe, brushless propulsion, SimonK ESCs, 1045 propellers, 3S 4200mAh LiPo battery, iMAX B6 digital balance charger, Pixhawk 2.4.8 autopilot with GPS/telemetry, and flight reserve.")
+    add_bullet("Package B — Required ONLY if We Use the Smart 4WD Ground Car (INR 3,830.00): ", "High-traction 4WD chassis kit, four 1:48 DC gear motors, dual 20-slot optical wheel encoders for odometry, L298N motor driver, telescoping aluminum sensor mast, 12V Li-ion pack, and ground reserve.")
 
     bom_items = [
-        ("YDLIDAR X2 360° 2D LiDAR Scanner", "LiDAR Sensor", "1", "7,189.00", "7,189.00", "7,189.00", "Robu.in / In Stock (Screenshot Ref)"),
-        ("DFRobot Gravity Digital 360° Tilt Sensor", "Orientation Sensor", "1", "237.36", "245.00", "245.00", "Robu.in / Silverline (Screenshot Ref)"),
-        ("Smart 4WD Robotic Car Kit + Encoders + L298N", "Contingency Platform", "1 kit", "1,850.00", "1,750.00", "1,750.00", "Robu.in / QuartzComponents"),
-        ("F450 Quadcopter Drone Frame Kit + Landing Gear", "Aerial Airframe", "1", "1,450.00", "1,350.00", "1,350.00", "Robu.in / QuartzComponents"),
-        ("A2212 1000KV Brushless Motors (Set of 4)", "Propulsion", "1 set", "2,200.00", "2,100.00", "2,100.00", "Robu.in / In Stock"),
-        ("30A SimonK ESC Speed Controllers (Set of 4)", "Propulsion", "1 set", "1,800.00", "1,750.00", "1,750.00", "Robu.in / In Stock"),
-        ("1045 Propeller Pairs (CW + CCW, 2 pairs)", "Propulsion", "2 pairs", "280.00", "260.00", "260.00", "Robu.in / In Stock"),
-        ("Orange 3S 11.1V 4200mAh 30C LiPo Battery", "Power Storage", "1", "2,950.00", "2,850.00", "2,850.00", "Robu.in / In Stock"),
-        ("iMAX B6 80W LiPo Balance Charger + Adapter", "Power Equipment", "1", "1,650.00", "1,580.00", "1,580.00", "Robu.in / QuartzComponents"),
-        ("Pixhawk 2.4.8 Flight Controller + M8N GPS + Telemetry", "Avionics Autopilot", "1 kit", "6,200.00", "5,950.00", "5,950.00", "Robu.in / Silverline"),
-        ("ESP32-WROOM-32 Development Board", "Embedded MCU", "1", "420.00", "380.00", "380.00", "Robu.in / In Stock"),
-        ("LM2596 DC-DC Buck Step-Down Voltage Regulator", "Power Management", "2", "260.00", "240.00", "240.00", "Robu.in / QuartzComponents"),
-        ("Vibration Damper Mounts + Silicone Standoffs", "Mechanical Mount", "1 set", "280.00", "250.00", "250.00", "Robu.in / In Stock"),
-        ("XT60 Connectors, 16AWG Silicon Wire & Hardware", "Wiring Harness", "1 lot", "350.00", "320.00", "320.00", "Robu.in / QuartzComponents"),
-        ("Consolidated Domestic Shipping (GST Registered)", "Logistics", "Consolidated", "—", "—", "400.00", "Robu.in courier rate"),
-        ("Project Engineering Contingency Allowance (8%)", "Risk Reserve", "Unforeseen", "—", "—", "2,000.00", "For wire/connector replacements"),
-        ("TOTAL RECOMMENDED PROJECT PROCUREMENT BUDGET", "Dual-Platform SHM", "Full System", "—", "—", "28,874.00", "Faculty-Ready Grant Request")
+        # PART 1: SHARED CORE
+        ("PART 1: SHARED CORE SENSING & COMPUTING", "COMMON TO BOTH", "--", "--", "8,774.00", "Essential for Drone & Car", True, "E2E8F0"),
+        ("YDLIDAR X2 360° 2D LiDAR Scanner", "Both (Drone & Car)", "1", "7,189.00", "7,189.00", "Robu.in / In Stock (Screenshot Ref)", False, None),
+        ("DFRobot Gravity Digital 360° Tilt Sensor", "Both (Drone & Car)", "1", "245.00", "245.00", "Robu.in / Silverline (Screenshot Ref)", False, None),
+        ("ESP32-WROOM-32 Development Board", "Both (Drone & Car)", "1", "380.00", "380.00", "Robu.in / In Stock", False, None),
+        ("LM2596 DC-DC Buck Step-Down Voltage Regulator", "Both (Drone & Car)", "2", "120.00", "240.00", "Robu.in / QuartzComponents", False, None),
+        ("Wiring Harness, XT60 & JST Connectors, Hardware", "Both (Drone & Car)", "1 lot", "320.00", "320.00", "Robu.in / QuartzComponents", False, None),
+        ("Consolidated Domestic Shipping (GST Registered)", "Both (Drone & Car)", "1 lot", "400.00", "400.00", "Robu.in courier rate", False, None),
+        # PART 2: DRONE ONLY
+        ("PART 2: REQUIRED ONLY IF WE USE DRONE", "DRONE ONLY", "--", "--", "17,350.00", "Exterior Facade Flight", True, "E0E7FF"),
+        ("F450 Quadcopter Drone Frame Kit + Landing Gear", "Drone Only", "1", "1,350.00", "1,350.00", "Robu.in / QuartzComponents", False, None),
+        ("A2212 1000KV Brushless Motors (Set of 4)", "Drone Only", "1 set", "2,100.00", "2,100.00", "Robu.in / In Stock", False, None),
+        ("30A SimonK ESC Speed Controllers (Set of 4)", "Drone Only", "1 set", "1,750.00", "1,750.00", "Robu.in / In Stock", False, None),
+        ("1045 Propeller Pairs (CW + CCW, 2 pairs)", "Drone Only", "2 pairs", "130.00", "260.00", "Robu.in / In Stock", False, None),
+        ("Orange 3S 11.1V 4200mAh 30C LiPo Battery Pack", "Drone Only", "1", "2,850.00", "2,850.00", "Robu.in / In Stock", False, None),
+        ("iMAX B6 80W LiPo Digital Balance Charger + Adapter", "Drone Only", "1", "1,580.00", "1,580.00", "Robu.in / QuartzComponents", False, None),
+        ("Pixhawk 2.4.8 Autopilot + M8N GPS + Telemetry", "Drone Only", "1 kit", "5,950.00", "5,950.00", "Robu.in / Silverline", False, None),
+        ("Silicone Ball Vibration Damper Mounts for Pixhawk/LiDAR", "Drone Only", "1 set", "250.00", "250.00", "Robu.in / In Stock", False, None),
+        ("Drone Subsystem Engineering Contingency (8%)", "Drone Only", "Reserve", "--", "1,260.00", "Wire/connector replacements", False, None),
+        # PART 3: CAR ONLY
+        ("PART 3: REQUIRED ONLY IF WE USE SMART 4WD CAR", "CAR ONLY", "--", "--", "3,830.00", "Indoor Corridor Scanning", True, "FEF3C7"),
+        ("Smart 4WD High-Traction Chassis + 4x 1:48 Motors & Wheels", "Car Only", "1 kit", "1,050.00", "1,050.00", "Robu.in / QuartzComponents", False, None),
+        ("Dual 20-Slot Optical Wheel Encoders (Photo-Interrupters)", "Car Only", "1 pair", "320.00", "320.00", "Robu.in / In Stock", False, None),
+        ("L298N / TB6612FNG Dual H-Bridge Motor Driver Module", "Car Only", "1", "380.00", "380.00", "Robu.in / QuartzComponents", False, None),
+        ("Telescoping Aluminum Sensor Mast & Mounting Bracket (0.2--2.2m)", "Car Only", "1", "650.00", "650.00", "Local fabrication / Hardware", False, None),
+        ("12V 2200mAh Li-ion Battery Pack & Dedicated Charger", "Car Only", "1", "1,150.00", "1,150.00", "QuartzComponents / In Stock", False, None),
+        ("Smart Car Subsystem Engineering Contingency (8%)", "Car Only", "Reserve", "--", "280.00", "Drive belt/coupler replacements", False, None),
+        # CONSOLIDATED TOTAL
+        ("TOTAL INTEGRATED DUAL-PLATFORM SYSTEM BUDGET", "FULL SYSTEM", "All Kits", "--", "28,874.00", "Faculty Grant Proposal", True, "0F172A")
     ]
 
-    bom_tab = doc.add_table(rows=len(bom_items)+1, cols=7)
+    bom_tab = doc.add_table(rows=len(bom_items)+1, cols=6)
     bom_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(bom_tab)
 
-    headers = ["Item Name & Model", "Category", "Qty", "Ref Price", "Verified Price", "Subtotal (INR)", "Supplier / Source Status"]
+    headers = ["Item Name & Model", "Platform Requirement", "Qty", "Unit Price", "Subtotal (INR)", "Supplier / Ref Source"]
     for c_idx, h_text in enumerate(headers):
         cell = bom_tab.rows[0].cells[c_idx]
         cell.paragraphs[0].add_run(h_text).bold = True
         set_cell_background(cell, "1E3A8A")
         cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
 
-    for r_idx, item in enumerate(bom_items):
+    for r_idx, (name, plat, qty, uprice, sub, supp, is_header, bg_hex) in enumerate(bom_items):
         row_cells = bom_tab.rows[r_idx+1].cells
         is_total = (r_idx == len(bom_items)-1)
-        for c_idx, val in enumerate(item):
+        for c_idx, val in enumerate([name, plat, qty, uprice, sub, supp]):
             cell = row_cells[c_idx]
             run = cell.paragraphs[0].add_run(val)
-            if is_total:
+            if is_header or is_total:
                 run.bold = True
+            if is_total:
                 set_cell_background(cell, "0F172A")
                 run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-            elif c_idx in [0, 5]:
+            elif bg_hex:
+                set_cell_background(cell, bg_hex)
+            elif c_idx in [0, 4]:
                 run.bold = True
 
     for row in bom_tab.rows:
@@ -500,12 +519,43 @@ def build_docx():
                     run.font.size = Pt(8.5)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
-    add_callout(
-        "Contingency Procurement Option (Ground-Only MVP): If aerial drone budget clearance is phased, the core sensing and "
-        "inspection algorithms can be fully validated on the Smart 4WD Ground Robotic Car using: YDLIDAR X2 (INR 7,189) + Tilt Sensor (INR 245) + "
-        "4WD Car Kit with Encoders (INR 1,750) + ESP32 & Buck Converter (INR 620) + Shipping (INR 160) = INR 9,964.00 Total MVP Budget.",
-        title="CONTINGENCY BUDGET OPTION"
-    )
+
+    # Decision Matrix Table
+    add_h2("Table 8(b): Deployment Scenarios & Platform Decision Matrix")
+    matrix_items = [
+        ("Scenario 1: Smart 4WD Car Only (Indoor Lab Contingency)", "Shared Core (INR 8,774) +\nCar Platform (INR 3,830)", "INR 12,604.00\n(MVP: INR 9,964)", "Best for GPS-denied indoor corridors & classrooms. 100% compliant with indoor safety rules; eliminates hand-sliding jitter (1.02 mm/tick odometry); eliminates wall prop-wash suction; runs 2.5 hours non-stop."),
+        ("Scenario 2: Aerial Drone Only (Exterior Facade Scanning)", "Shared Core (INR 8,774) +\nDrone Platform (INR 17,350)", "INR 26,124.00", "Best for multi-story exterior building facades & bridge piers. Autonomous GPS waypoint facade tracking; scans inaccessible heights up to 30m; 14–16 minutes flight endurance per battery."),
+        ("Scenario 3: Integrated Dual-Platform (Complete Civil SHM System)", "Shared Core (INR 8,774) +\nDrone Platform (INR 17,350) +\nCar Platform (INR 3,830)\n(Less shared charger discount)", "INR 28,874.00", "Complete all-environment Cyber-Physical SHM system. Deploys Drone for exterior tall facades and Smart 4WD Car for indoor corridors. Fulfills 100% of IDP project objectives and research scope.")
+    ]
+
+    mat_tab = doc.add_table(rows=len(matrix_items)+1, cols=4)
+    mat_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(mat_tab)
+
+    mheaders = ["Deployment Scenario", "Hardware Packages Included", "Total Cost (INR)", "Operational Capabilities & Field Suitability"]
+    for c_idx, h_text in enumerate(mheaders):
+        cell = mat_tab.rows[0].cells[c_idx]
+        cell.paragraphs[0].add_run(h_text).bold = True
+        set_cell_background(cell, "1E3A8A")
+        cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+
+    for r_idx, (scen, pkgs, cost, cap) in enumerate(matrix_items):
+        row_cells = mat_tab.rows[r_idx+1].cells
+        for c_idx, val in enumerate([scen, pkgs, cost, cap]):
+            cell = row_cells[c_idx]
+            run = cell.paragraphs[0].add_run(val)
+            if c_idx in [0, 2]:
+                run.bold = True
+
+    for row in mat_tab.rows:
+        for cell in row.cells:
+            set_cell_margins(cell, top=70, bottom=70, left=90, right=90)
+            for p in cell.paragraphs:
+                p.paragraph_format.line_spacing = 1.10
+                for run in p.runs:
+                    run.font.size = Pt(9.0)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
     # ================= SECTION 9: PROCUREMENT PRIORITY & STAGING =================
     add_h1("9. Hardware Procurement Priority & Staging Strategy")
@@ -514,9 +564,12 @@ def build_docx():
     add_bullet("Tier 2: Flight Platform & Power Train (INR 9,890.00): ", "F450 Frame, 4x A2212 Motors, 4x ESCs, 1045 Props, 3S LiPo, B6 Charger. Construct physical quadcopter UAV; calibrate thrust-to-weight ratio; conduct tethered hover and vibration damping trials.")
     add_bullet("Tier 3: Autonomous Avionics & Contingency (INR 9,020.00): ", "Pixhawk 2.4.8 Kit, GPS/Compass, 433MHz Telemetry, Contingency reserve. Integrate autonomous GPS-waypoint facade tracking, close-loop optical flow hover, and outdoor multi-story facade scanning.")
 
-    # ================= SECTION 10: TECHNICAL ARCHITECTURE & FLOWCHARTS =================
+    # ================= SECTION 10: TECHNICAL ARCHITECTURE & FLOWCHARTS (FULL-WIDTH CRISP) =================
     add_h1("10. Technical Architecture & System Flowcharts")
-    add_p("To provide a complete architectural reference, all verified system pipelines and engineering workflows are diagrammed below:")
+    add_p(
+        "To provide a complete architectural reference, all verified system pipelines and engineering workflows are diagrammed below. "
+        "Each diagram is rendered at full page width with high-resolution vector typography for complete readability:"
+    )
 
     f1 = os.path.join(assets_dir, "flowchart_system_architecture.png")
     if os.path.exists(f1):
@@ -526,24 +579,32 @@ def build_docx():
         add_caption("Figure 7: Diagram 1 — High-Level SHM System Architecture & Cross-Subsystem Telemetry Pipeline")
 
     f2 = os.path.join(assets_dir, "flowchart_aerial_acquisition.png")
+    if os.path.exists(f2):
+        p_f2 = doc.add_paragraph()
+        p_f2.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_f2.add_run().add_picture(f2, width=Inches(6.4))
+        add_caption("Figure 8: Diagram 2 — Aerial Subsystem Acquisition Workflow & FreeRTOS Ingestion Pipeline")
+
     f3 = os.path.join(assets_dir, "flowchart_ground_analytics.png")
-    if os.path.exists(f2) and os.path.exists(f3):
-        p_f23 = doc.add_paragraph()
-        p_f23.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        p_f23.add_run().add_picture(f2, width=Inches(3.2))
-        p_f23.add_run("   ")
-        p_f23.add_run().add_picture(f3, width=Inches(3.2))
-        add_caption("Figure 8: Diagram 2 (Left): Aerial Subsystem Acquisition; Diagram 3 (Right): Ground Analytics & Metrology Pipeline")
+    if os.path.exists(f3):
+        p_f3 = doc.add_paragraph()
+        p_f3.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_f3.add_run().add_picture(f3, width=Inches(6.4))
+        add_caption("Figure 9: Diagram 3 — Ground Analytics, Baseline Tracking & Structural Defect Decision Tree")
 
     f4 = os.path.join(assets_dir, "flowchart_power_wiring.png")
+    if os.path.exists(f4):
+        p_f4 = doc.add_paragraph()
+        p_f4.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_f4.add_run().add_picture(f4, width=Inches(6.4))
+        add_caption("Figure 10: Diagram 4 — Dual-Platform Power Distribution & Hardware Wiring Architecture (Drone vs. Smart 4WD Car)")
+
     f5 = os.path.join(assets_dir, "flowchart_testing_roadmap.png")
-    if os.path.exists(f4) and os.path.exists(f5):
-        p_f45 = doc.add_paragraph()
-        p_f45.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        p_f45.add_run().add_picture(f4, width=Inches(3.2))
-        p_f45.add_run("   ")
-        p_f45.add_run().add_picture(f5, width=Inches(3.2))
-        add_caption("Figure 9: Diagram 4 (Left): Subsystem Power & Wiring; Diagram 5 (Right): 7-Phase Testing & Validation Roadmap")
+    if os.path.exists(f5):
+        p_f5 = doc.add_paragraph()
+        p_f5.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        p_f5.add_run().add_picture(f5, width=Inches(6.4))
+        add_caption("Figure 11: Diagram 5 — 7-Phase Testing Roadmap & Quantitative Scientific Acceptance Criteria")
 
     # ================= SECTION 11: FUTURE WORK & PHASED ROADMAP =================
     add_h1("11. Future Work & Phased Implementation Roadmap")
@@ -595,8 +656,9 @@ def build_docx():
     add_p(
         "The formulation of the Dual-Platform Strategy—deploying the F450 quadcopter drone for exterior elevated scanning and the "
         "Smart 4WD Ground Robotic Car with optical wheel encoders for indoor GPS-denied surveys—directly resolves all identified operational "
-        "constraints (hand-motion jitter, tilt distortion, prop-wash wall effects). Supported by our verified INR 28,874.00 procurement budget "
-        "(or INR 9,964.00 Ground MVP option), our team is poised to commence Phase 1 component acquisition upon faculty approval."
+        "constraints (hand-motion jitter, tilt distortion, prop-wash wall effects). Supported by our verified platform-wise procurement breakdown "
+        "(Car-Only MVP: INR 9,964; Drone-Only: INR 26,124; Full Integrated Dual-Platform: INR 28,874), our team is poised to commence "
+        "Phase 1 component acquisition upon faculty approval."
     )
     add_callout(
         "Immediate Next Steps: (1) Submit this progress report for formal Guide review (Dr. Senthil Kumar N); (2) Finalize component "
