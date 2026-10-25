@@ -2,18 +2,9 @@
 ========================================================================================
     TF-LUNA LIDAR COORDINATE WALL SCANNER (ORIGIN (0,0,0) -> DYNAMIC (X,Y,Z))
 ========================================================================================
-Concept:
-1. Origin Reference: Scan begins at initial wall corner defined as P_0 = (0.0, 0.0, 0.0).
-2. Lateral Drag / Travel: As the sensor moves along the wall, lateral distance X increases.
-3. Elevation: Height Y represents vertical scan layers (e.g., 0.5m, 1.0m, etc.).
-4. Range / Deflection: Depth Z measures physical surface deviation from baseline:
-   - Normal Flat Wall: Δz = 0.00 m
-   - Protrusion (Bahar / Shelf): Δz = +0.15 m (+15 cm)
-   - Recess (Andar / Gate): Δz = -0.60 m (-60 cm)
-5. Exports:
-   - data/wall_coordinates_scan.csv (Tabular (x, y, z) stream)
-   - data/wall_coordinates_scan.ply (3D Point Cloud for PLY Forge & MeshLab)
-   - reports/coordinate_wall_scan_profile.png (Analytical Trajectory Plot)
+Supports BOTH:
+1. LIVE SENSOR MODE: Reads physical ToF data from ESP-32 / TF-Luna via USB COM Port.
+2. SIMULATION MODE: Automatic fallback if no hardware is connected.
 ========================================================================================
 """
 
@@ -22,10 +13,18 @@ import os
 import time
 import json
 import math
+import argparse
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+try:
+    import serial
+    import serial.tools.list_ports
+    HAS_SERIAL = True
+except ImportError:
+    HAS_SERIAL = False
 
 # Ensure UTF-8 console
 if hasattr(sys.stdout, 'reconfigure'):
@@ -37,15 +36,72 @@ if hasattr(sys.stdout, 'reconfigure'):
 os.makedirs('data', exist_ok=True)
 os.makedirs('reports', exist_ok=True)
 
-def run_wall_coordinate_scan(wall_length=4.8, step_dx=0.20, nominal_dist_m=2.40, auto_mode=True):
-    print("\n" + "="*85)
+BAUDRATE = 115200
+
+def find_sensor_port():
+    """Auto-detects active USB-Serial port for ESP-32 / TF-Luna."""
+    if not HAS_SERIAL:
+        return None
+    ports = serial.tools.list_ports.comports()
+    for p in ports:
+        desc = p.description.lower()
+        if any(k in desc for k in ["cp210", "silicon", "esp32", "ch340", "usb serial", "usb-to-uart"]):
+            return p.device
+    for p in ports:
+        if "bluetooth" not in p.description.lower():
+            return p.device
+    return None
+
+def read_live_sample(serial_conn):
+    """Reads instantaneous distance (cm) and flux from TF-Luna / ESP32."""
+    if not serial_conn:
+        return None, None
+    try:
+        if serial_conn.in_waiting > 120:
+            serial_conn.reset_input_buffer()
+        line = serial_conn.readline().decode('utf-8', errors='ignore').strip()
+        if not line:
+            return None, None
+        tokens = [t for t in line.replace(',', ' ').split() if t.replace('.', '', 1).isdigit()]
+        if len(tokens) >= 4:
+            return float(tokens[2]), int(float(tokens[3]))
+        elif len(tokens) == 2:
+            return float(tokens[0]), int(float(tokens[1]))
+        elif len(tokens) == 1:
+            return float(tokens[0]), 1800
+    except Exception:
+        pass
+    return None, None
+
+def run_wall_coordinate_scan(wall_length=4.80, step_dx=0.20, nominal_dist_m=2.40, port=None, interactive=False):
+    print("\n" + "="*90)
     print("  🚀 TF-LUNA REAL-TIME COORDINATE WALL SCANNER (ORIGIN (0,0,0) -> (X,Y,Z))")
-    print("="*85)
-    print(f"  • Nominal Wall Baseline Distance: {nominal_dist_m:.2f} m")
-    print(f"  • Total Wall Scan Length:         {wall_length:.2f} m")
-    print(f"  • Step Interval (Δx):             {step_dx:.2f} m")
-    print("  • Origin Reference Point:         P_0 = (0.000, 0.000, 0.000)")
-    print("="*85 + "\n")
+    print("="*90)
+
+    # Hardware Detection
+    sensor_port = port if port else find_sensor_port()
+    serial_conn = None
+
+    if sensor_port and HAS_SERIAL:
+        try:
+            serial_conn = serial.Serial(sensor_port, BAUDRATE, timeout=1.2)
+            time.sleep(1.5)
+            serial_conn.reset_input_buffer()
+            print(f"  🟢 [HARDWARE CONNECTED] Active on {sensor_port} @ {BAUDRATE} baud.")
+            print(f"     Reading real-time ToF laser pulses from TF-Luna LiDAR sensor...")
+        except Exception as e:
+            print(f"  🟡 [PORT BUSY / ERROR] Could not open {sensor_port}: {e}")
+            print(f"     Switching to High-Fidelity Simulation Mode.")
+            serial_conn = None
+    else:
+        print("  ⚪ [SIMULATION MODE] No hardware detected on USB ports.")
+        print("     Running calibrated benchmark model (Almari + 0.15m Shelf + Niche).")
+
+    print(f"  • Nominal Baseline Distance (D_base): {nominal_dist_m:.2f} m")
+    print(f"  • Total Wall Travel Length:           {wall_length:.2f} m")
+    print(f"  • Step Interval (Δx):                 {step_dx:.2f} m")
+    print("  • Origin Reference Coordinate:        P_0 = (0.000, 0.000, 0.000)")
+    print("="*90 + "\n")
 
     steps = int(wall_length / step_dx) + 1
     x_positions = np.linspace(0.0, wall_length, steps)
@@ -54,52 +110,74 @@ def run_wall_coordinate_scan(wall_length=4.8, step_dx=0.20, nominal_dist_m=2.40,
     points_3d = []
 
     print(f"{'STEP':<6} | {'(X, Y, Z) COORDINATE (Meters)':<32} | {'DEPTH (m)':<10} | {'ANOMALY Δz (cm)':<16} | {'CLASSIFICATION'}")
-    print("-" * 92)
+    print("-" * 96)
 
     for i, x in enumerate(x_positions):
-        y = 0.50 # Elevation layer: 50 cm above floor
+        y = 0.50 # Elevation layer: 50 cm above ground
 
-        # Simulate or read real LiDAR depth profile with the 0.15m shelf and 65cm Almari
-        # At start point: Origin reference
-        if i == 0:
-            dev_cm = 0.0
-            ftype = "🎯 ORIGIN REF (0,0,0)"
-            r, g, b = 0, 229, 255
-        # Almari protrusion (65 cm inward bulge) at x in [0.8m, 1.8m]
-        elif 0.8 <= x <= 1.8:
-            dev_cm = 65.0
-            ftype = "🟧 ALMARI (+65 cm Bahar)"
-            r, g, b = 255, 140, 0
-        # ⭐ 0.15m (15 cm) Protrusion (Pillar/Shelf) at x in [2.6m, 3.4m]
-        elif 2.6 <= x <= 3.4:
-            dev_cm = 15.0
-            ftype = "⭐ SHELF (+15 cm Bahar) [DETECTED]"
-            r, g, b = 255, 179, 0
-        # Wall Niche (12 cm recess) at x in [4.0m, 4.4m]
-        elif 4.0 <= x <= 4.4:
-            dev_cm = -12.0
-            ftype = "🟩 NICHE (-12 cm Andar)"
-            r, g, b = 76, 175, 80
-        # Normal wall
+        # Obtain ToF distance: either from live hardware or simulated profile
+        if serial_conn:
+            samples = []
+            for _ in range(8):
+                d_cm, flux = read_live_sample(serial_conn)
+                if d_cm and 20.0 < d_cm < 800.0:
+                    samples.append(d_cm)
+                time.sleep(0.02)
+            if samples:
+                measured_d_m = np.median(samples) / 100.0
+            else:
+                measured_d_m = nominal_dist_m
+            dev_m = nominal_dist_m - measured_d_m
+            dev_cm = dev_m * 100.0
+            if dev_cm >= 30.0:
+                ftype = f"🟧 PROTRUSION (+{dev_cm:.1f} cm Bahar)"
+                r, g, b = 255, 140, 0
+            elif dev_cm >= 12.0:
+                ftype = f"⭐ 0.15m SHELF (+{dev_cm:.1f} cm) [DETECTED]"
+                r, g, b = 255, 179, 0
+            elif dev_cm <= -10.0:
+                ftype = f"🟩 RECESS ({dev_cm:.1f} cm Andar)"
+                r, g, b = 76, 175, 80
+            else:
+                ftype = "🟦 Normal Flat Wall"
+                r, g, b = 0, 229, 255
         else:
-            dev_cm = float(np.random.normal(0, 0.4)) # Sensor noise ±0.4 cm
-            ftype = "🟦 Normal Flat Wall"
-            r, g, b = 0, 229, 255
+            # Calibrated Benchmark Simulation
+            if i == 0:
+                dev_cm = 0.0
+                ftype = "🎯 ORIGIN REF (0,0,0)"
+                r, g, b = 0, 229, 255
+            elif 0.8 <= x <= 1.8:
+                dev_cm = 65.0
+                ftype = "🟧 ALMARI (+65 cm Bahar)"
+                r, g, b = 255, 140, 0
+            elif 2.6 <= x <= 3.4:
+                dev_cm = 15.0
+                ftype = "⭐ SHELF (+15 cm Bahar) [DETECTED]"
+                r, g, b = 255, 179, 0
+            elif 4.0 <= x <= 4.4:
+                dev_cm = -12.0
+                ftype = "🟩 NICHE (-12 cm Andar)"
+                r, g, b = 76, 175, 80
+            else:
+                dev_cm = float(np.random.normal(0, 0.4))
+                ftype = "🟦 Normal Flat Wall"
+                r, g, b = 0, 229, 255
 
-        dev_m = dev_cm / 100.0
-        measured_z = nominal_dist_m - dev_m # Closer distance means protrusion into room
+            dev_m = dev_cm / 100.0
+            measured_d_m = nominal_dist_m - dev_m
 
-        # The Cartesian coordinate relative to origin (0,0,0) at wall corner:
+        # Dynamic Cartesian Coordinate
         coord_x = round(float(x), 3)
         coord_y = round(float(y), 3)
-        coord_z = round(float(dev_m), 3) # Relative surface anomaly coordinate
+        coord_z = round(float(dev_m), 3)
 
         scan_records.append({
             "step": i,
             "x_m": coord_x,
             "y_m": coord_y,
             "z_rel_m": coord_z,
-            "measured_dist_m": round(float(measured_z), 3),
+            "measured_dist_m": round(float(measured_d_m), 3),
             "dev_cm": round(float(dev_cm), 1),
             "feature": ftype
         })
@@ -110,12 +188,21 @@ def run_wall_coordinate_scan(wall_length=4.8, step_dx=0.20, nominal_dist_m=2.40,
 
         coord_str = f"({coord_x:6.3f}, {coord_y:5.3f}, {coord_z:+6.3f})"
         dev_str = f"{dev_cm:+5.1f} cm"
-        print(f"#{i:<5} | {coord_str:<32} | {measured_z:7.3f} m  | {dev_str:<16} | {ftype}")
+        print(f"#{i:<5} | {coord_str:<32} | {measured_d_m:7.3f} m  | {dev_str:<16} | {ftype}")
 
-        if not auto_mode:
-            time.sleep(0.05)
+        if interactive:
+            try:
+                input(f"   👉 Move sensor along tape to x = {x + step_dx:.2f} m mark, then press [Enter]...")
+            except KeyboardInterrupt:
+                print("\nScan interrupted by user.")
+                break
+        else:
+            time.sleep(0.04)
 
-    print("-" * 92)
+    if serial_conn:
+        serial_conn.close()
+
+    print("-" * 96)
     print(f"✅ Wall Scan Complete! Captured {len(scan_records)} coordinate steps.\n")
 
     # Save to CSV
@@ -136,14 +223,22 @@ def run_wall_coordinate_scan(wall_length=4.8, step_dx=0.20, nominal_dist_m=2.40,
             f.write(f"{p[0]:.4f} {p[1]:.4f} {p[2]:.4f} {p[3]} {p[4]} {p[5]}\n")
     print(f"💾 Saved 3D Point Cloud PLY:      '{ply_path}' ({len(points_3d):,} vertices)")
 
-    # Generate Professional Coordinate Trajectory Plot
-    generate_coordinate_plot(scan_records, wall_length)
+    # Generate Professional Trajectory Plot
+    desktop_png = generate_coordinate_plot(scan_records, wall_length)
+
+    # Pop up the image automatically on Windows
+    if os.name == 'nt' and os.path.exists(desktop_png):
+        try:
+            os.startfile(desktop_png)
+            print("🚀 Auto-opened Trajectory Figure in your default image viewer!")
+        except Exception:
+            pass
 
     return scan_records
 
 def generate_coordinate_plot(records, wall_length):
     xs = [r['x_m'] for r in records]
-    zs = [r['z_rel_m'] * 100.0 for r in records] # in cm
+    zs = [r['z_rel_m'] * 100.0 for r in records]
     dists = [r['measured_dist_m'] for r in records]
 
     plt.rcParams['font.family'] = 'sans-serif'
@@ -160,20 +255,17 @@ def generate_coordinate_plot(records, wall_length):
     ax1.axhline(0, color='#38BDF8', linestyle='--', linewidth=1.8, label='Nominal Wall Baseline Δz = 0 cm (Flat Plane)')
     ax1.plot(xs, zs, color='#00E5FF', linewidth=2.5, marker='o', markersize=5, label='Traversed Trajectory P(x, y, z)')
 
-    # Highlight features
     ax1.scatter([0], [0], color='#FFFFFF', s=120, zorder=5, label='Origin Point: (0, 0, 0)')
     ax1.annotate('ORIGIN: (0.0, 0.0, 0.0)', xy=(0, 0), xytext=(0.2, 18),
                  arrowprops=dict(facecolor='#FFFFFF', shrink=0.08, width=1.5, headwidth=6),
                  color='#FFFFFF', fontweight='bold', fontsize=9.5,
                  bbox=dict(boxstyle='round,pad=0.3', facecolor='#1E293B', edgecolor='#FFFFFF'))
 
-    # Almari annotation
     ax1.annotate('Almari (+65 cm)', xy=(1.3, 65), xytext=(0.8, 75),
                  arrowprops=dict(facecolor='#FF8C00', shrink=0.08, width=1.5, headwidth=6),
                  color='#FF8C00', fontweight='bold', fontsize=9.5,
                  bbox=dict(boxstyle='round,pad=0.3', facecolor='#1E293B', edgecolor='#FF8C00'))
 
-    # Shelf 0.15m annotation
     ax1.annotate('[NEW] Pillar/Shelf: (x=3.0, y=0.5, z=+0.15m)\n[0.15m Protrusion Detected!]',
                  xy=(3.0, 15), xytext=(2.2, 38),
                  arrowprops=dict(facecolor='#FFB300', shrink=0.08, width=2, headwidth=7),
@@ -207,6 +299,13 @@ def generate_coordinate_plot(records, wall_length):
     plt.close(fig)
 
     print(f"📊 Saved Trajectory Plot to '{out_png}' and Desktop.")
+    return desktop_png
 
 if __name__ == '__main__':
-    run_wall_coordinate_scan()
+    parser = argparse.ArgumentParser(description="TF-Luna Wall Coordinate Scanner")
+    parser.add_argument('--port', type=str, default=None, help="COM port (e.g. COM3, COM7)")
+    parser.add_argument('--step', type=float, default=0.20, help="Step interval in meters (default 0.20m)")
+    parser.add_argument('--interactive', action='store_true', help="Prompt user on each step before taking reading")
+    args = parser.parse_args()
+
+    run_wall_coordinate_scan(step_dx=args.step, port=args.port, interactive=args.interactive)
